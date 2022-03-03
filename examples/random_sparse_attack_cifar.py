@@ -11,6 +11,7 @@ import torch.nn.functional as F
 import matplotlib.pyplot as plt
 import matplotlib
 import sys
+import itertools
 # for distances between expls
 from scipy.stats import spearmanr as spr
 import scipy.spatial as spatial
@@ -70,7 +71,7 @@ cifar_test = torchvision.datasets.CIFAR10(root="./data", train=False, download=T
 test_loader = torch.utils.data.DataLoader(
         cifar_test,
         batch_size=128,
-        shuffle=False
+        shuffle=True
     )
 
 BATCH_SIZE = 64
@@ -117,11 +118,11 @@ else:
     mask = mask.view(org_expl.size())
 
 inds = []
-for i in range(3):
+for i in range(32):
     for j in range(32):
-        for k in range(32):
-            inds.append([i,j,k])
+        inds.append([i,j])
 inds = np.array(inds)
+all_corners = [list(i) for i in itertools.product([0, 1], repeat=3)]
 x_adv = copy.deepcopy(examples)
 finished = np.array([0]*BATCH_SIZE)
 no_print = np.array([0]*BATCH_SIZE)
@@ -130,24 +131,19 @@ for num_tries in range(200):
     to_pick = np.random.choice(range(len(inds)), size=BATCH_SIZE)
     pixels = inds[to_pick]
     for b in unfinished_batches:
-        x_adv[b][pixels[b, 0], pixels[b, 1], pixels[b, 2]] = 0.0
-        adv_expl_batch = get_expl(model, normalizer.forward(x_adv[b].unsqueeze(dim=0)), args.method,
-            desired_index=labels[b], smooth=args.smooth, sigma=sigma, normalize=True, multiply_by_input=args.multiply_by_input)
-        _, topk_mask_ind = torch.topk(mask[b].flatten(), k=args.topk)
-        _, topk_adv_ind = torch.topk(adv_expl_batch.flatten(), k=args.topk)
-        topk_0 = float(len(np.intersect1d(topk_mask_ind.cpu().detach().numpy(),
-                            topk_adv_ind.cpu().detach().numpy())))/args.topk
-        ##
-        x_adv[b][pixels[b, 0], pixels[b, 1], pixels[b, 2]] = 1.0
-        adv_expl_batch = get_expl(model, normalizer.forward(x_adv[b].unsqueeze(dim=0)), args.method,
-            desired_index=labels[b], smooth=args.smooth, sigma=sigma, normalize=True, multiply_by_input=args.multiply_by_input)
-        _, topk_adv_ind = torch.topk(adv_expl_batch.flatten(), k=args.topk)
-        topk_1 = float(len(np.intersect1d(topk_mask_ind.cpu().detach().numpy(),
-                            topk_adv_ind.cpu().detach().numpy())))/args.topk
-        if topk_0 < topk_1:
-            x_adv[b][pixels[b, 0], pixels[b, 1], pixels[b, 2]] = 0.0
-        else:
-            x_adv[b][pixels[b, 0], pixels[b, 1], pixels[b, 2]] = 1.0
+        min_topk = 1.0
+        for ind, c in enumerate(all_corners):
+            x_adv[b, :, pixels[b, 0], pixels[b, 1]] = torch.tensor(c).cuda()
+            adv_expl_batch = get_expl(model, normalizer.forward(x_adv[b].unsqueeze(dim=0)), args.method,
+                desired_index=labels[b], smooth=args.smooth, sigma=sigma, normalize=True, multiply_by_input=args.multiply_by_input)
+            _, topk_mask_ind = torch.topk(mask[b].flatten(), k=args.topk)
+            _, topk_adv_ind = torch.topk(adv_expl_batch.flatten(), k=args.topk)
+            topk_c = float(len(np.intersect1d(topk_mask_ind.cpu().detach().numpy(),
+                                topk_adv_ind.cpu().detach().numpy())))/args.topk
+            if topk_c <= min_topk:
+                min_topk = topk_c
+                best_ind = ind
+        x_adv[b, :, pixels[b, 0], pixels[b, 1]] = torch.tensor(all_corners[best_ind]).cuda()
 
     adv_expl = get_expl(model, normalizer.forward(x_adv), args.method,
             desired_index=labels, smooth=args.smooth, sigma=sigma, normalize=True, multiply_by_input=args.multiply_by_input)
