@@ -1,0 +1,756 @@
+lr=0.0001, first_hidden_size=512, num_layers=4, dropout=0.0
+(30000, 91)
+The time elapse of epoch 000 is: 00: 00: 00
+test acc: 0.815
+The time elapse of epoch 001 is: 00: 00: 00
+test acc: 0.822
+The time elapse of epoch 002 is: 00: 00: 00
+test acc: 0.823
+The time elapse of epoch 003 is: 00: 00: 00
+test acc: 0.823
+The time elapse of epoch 004 is: 00: 00: 00
+test acc: 0.824
+
+
+lr=0.0001, first_hidden_size=512, num_layers=4, dropout=0.2
+(30000, 91)
+The time elapse of epoch 000 is: 00: 00: 00
+test acc: 0.814
+The time elapse of epoch 001 is: 00: 00: 00
+test acc: 0.819
+The time elapse of epoch 002 is: 00: 00: 00
+test acc: 0.823
+The time elapse of epoch 003 is: 00: 00: 00
+test acc: 0.824
+The time elapse of epoch 004 is: 00: 00: 00
+test acc: 0.825
+
+
+lr=0.0001, first_hidden_size=512, num_layers=3, dropout=0.0
+(30000, 91)
+The time elapse of epoch 000 is: 00: 00: 00
+test acc: 0.815
+The time elapse of epoch 001 is: 00: 00: 00
+test acc: 0.824
+The time elapse of epoch 002 is: 00: 00: 00
+test acc: 0.825
+The time elapse of epoch 003 is: 00: 00: 00
+test acc: 0.824
+The time elapse of epoch 004 is: 00: 00: 00
+test acc: 0.824
+
+
+lr=0.0001, first_hidden_size=512, num_layers=3, dropout=0.2
+(30000, 91)
+The time elapse of epoch 000 is: 00: 00: 00
+test acc: 0.809
+The time elapse of epoch 001 is: 00: 00: 00
+test acc: 0.819
+The time elapse of epoch 002 is: 00: 00: 00
+test acc: 0.824
+The time elapse of epoch 003 is: 00: 00: 00
+test acc: 0.824
+The time elapse of epoch 004 is: 00: 00: 00
+test acc: 0.824
+
+
+lr=0.0001, first_hidden_size=512, num_layers=2, dropout=0.0
+(30000, 91)
+The time elapse of epoch 000 is: 00: 00: 00
+test acc: 0.813
+The time elapse of epoch 001 is: 00: 00: 00
+test acc: 0.823
+The time elapse of epoch 002 is: 00: 00: 00
+test acc: 0.824
+The time elapse of epoch 003 is: 00: 00: 00
+test acc: 0.824
+The time elapse of epoch 004 is: 00: 00: 00
+test acc: 0.825
+
+
+lr=0.0001, first_hidden_size=512, num_layers=2, dropout=0.2
+(30000, 91)
+The time elapse of epoch 000 is: 00: 00: 00
+test acc: 0.810
+The time elapse of epoch 001 is: 00: 00: 00
+test acc: 0.818
+The time elapse of epoch 002 is: 00: 00: 00
+test acc: 0.825
+The time elapse of epoch 003 is: 00: 00: 00
+test acc: 0.825
+The time elapse of epoch 004 is: 00: 00: 00
+test acc: 0.824
+
+
+lr=0.0001, first_hidden_size=256, num_layers=4, dropout=0.0
+(30000, 91)
+The time elapse of epoch 000 is: 00: 00: 00
+test acc: 0.810
+The time elapse of epoch 001 is: 00: 00: 00
+test acc: 0.819
+The time elapse of epoch 002 is: 00: 00: 00
+test acc: 0.824
+The time elapse of epoch 003 is: 00: 00: 00
+test acc: 0.824
+The time elapse of epoch 004 is: 00: 00: 00
+test acc: 0.824
+
+
+lr=0.0001, first_hidden_size=256, num_layers=4, dropout=0.2
+(30000, 91)
+The time elapse of epoch 000 is: 00: 00: 00
+test acc: 0.794
+The time elapse of epoch 001 is: 00: 00: 00
+test acc: 0.814
+The time elapse of epoch 002 is: 00: 00: 00
+test acc: 0.818
+The time elapse of epoch 003 is: 00: 00: 00
+test acc: 0.820
+The time elapse of epoch 004 is: 00: 00: 00
+test acc: 0.822
+
+
+lr=0.0001, first_hidden_size=256, num_layers=3, dropout=0.0
+(30000, 91)
+The time elapse of epoch 000 is: 00: 00: 00
+test acc: 0.805
+The time elapse of epoch 001 is: 00: 00: 00
+test acc: 0.814
+The time elapse of epoch 002 is: 00: 00: 00
+test acc: 0.821
+The time elapse of epoch 003 is: 00: 00: 00
+test acc: 0.821
+The time elapse of epoch 004 is: 00: 00: 00
+test acc: 0.823
+
+
+lr=0.0001, first_hidden_size=256, num_layers=3, dropout=0.2
+(30000, 91)
+The time elapse of epoch 000 is: 00: 00: 00
+test acc: 0.797
+The time elapse of epoch 001 is: 00: 00: 00
+test acc: 0.813
+The time elapse of epoch 002 is: 00: 00: 00
+test acc: 0.820
+The time elapse of epoch 003 is: 00: 00: 00
+test acc: 0.824
+The time elapse of epoch 004 is: 00: 00: 00
+test acc: 0.824
+
+
+lr=0.0001, first_hidden_size=256, num_layers=2, dropout=0.0
+(30000, 91)
+The time elapse of epoch 000 is: 00: 00: 00
+test acc: 0.804
+The time elapse of epoch 001 is: 00: 00: 00
+test acc: 0.817
+The time elapse of epoch 002 is: 00: 00: 00
+test acc: 0.823
+The time elapse of epoch 003 is: 00: 00: 00
+test acc: 0.825
+The time elapse of epoch 004 is: 00: 00: 00
+test acc: 0.825
+
+
+lr=0.0001, first_hidden_size=256, num_layers=2, dropout=0.2
+(30000, 91)
+The time elapse of epoch 000 is: 00: 00: 00
+test acc: 0.797
+The time elapse of epoch 001 is: 00: 00: 00
+test acc: 0.811
+The time elapse of epoch 002 is: 00: 00: 00
+test acc: 0.814
+The time elapse of epoch 003 is: 00: 00: 00
+test acc: 0.819
+The time elapse of epoch 004 is: 00: 00: 00
+test acc: 0.823
+
+
+lr=0.0001, first_hidden_size=128, num_layers=4, dropout=0.0
+(30000, 91)
+The time elapse of epoch 000 is: 00: 00: 00
+test acc: 0.780
+The time elapse of epoch 001 is: 00: 00: 00
+test acc: 0.809
+The time elapse of epoch 002 is: 00: 00: 00
+test acc: 0.814
+The time elapse of epoch 003 is: 00: 00: 00
+test acc: 0.817
+The time elapse of epoch 004 is: 00: 00: 00
+test acc: 0.821
+
+
+lr=0.0001, first_hidden_size=128, num_layers=4, dropout=0.2
+(30000, 91)
+The time elapse of epoch 000 is: 00: 00: 00
+test acc: 0.779
+The time elapse of epoch 001 is: 00: 00: 00
+test acc: 0.786
+The time elapse of epoch 002 is: 00: 00: 00
+test acc: 0.812
+The time elapse of epoch 003 is: 00: 00: 00
+test acc: 0.812
+The time elapse of epoch 004 is: 00: 00: 00
+test acc: 0.815
+
+
+lr=0.0001, first_hidden_size=128, num_layers=3, dropout=0.0
+(30000, 91)
+The time elapse of epoch 000 is: 00: 00: 00
+test acc: 0.779
+The time elapse of epoch 001 is: 00: 00: 00
+test acc: 0.811
+The time elapse of epoch 002 is: 00: 00: 00
+test acc: 0.814
+The time elapse of epoch 003 is: 00: 00: 00
+test acc: 0.817
+The time elapse of epoch 004 is: 00: 00: 00
+test acc: 0.821
+
+
+lr=0.0001, first_hidden_size=128, num_layers=3, dropout=0.2
+(30000, 91)
+The time elapse of epoch 000 is: 00: 00: 00
+test acc: 0.779
+The time elapse of epoch 001 is: 00: 00: 00
+test acc: 0.794
+The time elapse of epoch 002 is: 00: 00: 00
+test acc: 0.811
+The time elapse of epoch 003 is: 00: 00: 00
+test acc: 0.816
+The time elapse of epoch 004 is: 00: 00: 00
+test acc: 0.819
+
+
+lr=0.0001, first_hidden_size=128, num_layers=2, dropout=0.0
+(30000, 91)
+The time elapse of epoch 000 is: 00: 00: 00
+test acc: 0.779
+The time elapse of epoch 001 is: 00: 00: 00
+test acc: 0.805
+The time elapse of epoch 002 is: 00: 00: 00
+test acc: 0.813
+The time elapse of epoch 003 is: 00: 00: 00
+test acc: 0.816
+The time elapse of epoch 004 is: 00: 00: 00
+test acc: 0.821
+
+
+lr=0.0001, first_hidden_size=128, num_layers=2, dropout=0.2
+(30000, 91)
+The time elapse of epoch 000 is: 00: 00: 00
+test acc: 0.779
+The time elapse of epoch 001 is: 00: 00: 00
+test acc: 0.804
+The time elapse of epoch 002 is: 00: 00: 00
+test acc: 0.810
+The time elapse of epoch 003 is: 00: 00: 00
+test acc: 0.813
+The time elapse of epoch 004 is: 00: 00: 00
+test acc: 0.812
+
+
+lr=0.0005, first_hidden_size=512, num_layers=4, dropout=0.0
+(30000, 91)
+The time elapse of epoch 000 is: 00: 00: 00
+test acc: 0.824
+The time elapse of epoch 001 is: 00: 00: 00
+test acc: 0.826
+The time elapse of epoch 002 is: 00: 00: 00
+test acc: 0.826
+The time elapse of epoch 003 is: 00: 00: 00
+test acc: 0.826
+The time elapse of epoch 004 is: 00: 00: 00
+test acc: 0.819
+
+
+lr=0.0005, first_hidden_size=512, num_layers=4, dropout=0.2
+(30000, 91)
+The time elapse of epoch 000 is: 00: 00: 00
+test acc: 0.822
+The time elapse of epoch 001 is: 00: 00: 00
+test acc: 0.822
+The time elapse of epoch 002 is: 00: 00: 00
+test acc: 0.824
+The time elapse of epoch 003 is: 00: 00: 00
+test acc: 0.826
+The time elapse of epoch 004 is: 00: 00: 00
+test acc: 0.824
+
+
+lr=0.0005, first_hidden_size=512, num_layers=3, dropout=0.0
+(30000, 91)
+The time elapse of epoch 000 is: 00: 00: 00
+test acc: 0.823
+The time elapse of epoch 001 is: 00: 00: 00
+test acc: 0.824
+The time elapse of epoch 002 is: 00: 00: 00
+test acc: 0.825
+The time elapse of epoch 003 is: 00: 00: 00
+test acc: 0.826
+The time elapse of epoch 004 is: 00: 00: 00
+test acc: 0.824
+
+
+lr=0.0005, first_hidden_size=512, num_layers=3, dropout=0.2
+(30000, 91)
+The time elapse of epoch 000 is: 00: 00: 00
+test acc: 0.820
+The time elapse of epoch 001 is: 00: 00: 00
+test acc: 0.824
+The time elapse of epoch 002 is: 00: 00: 00
+test acc: 0.824
+The time elapse of epoch 003 is: 00: 00: 00
+test acc: 0.826
+The time elapse of epoch 004 is: 00: 00: 00
+test acc: 0.825
+
+
+lr=0.0005, first_hidden_size=512, num_layers=2, dropout=0.0
+(30000, 91)
+The time elapse of epoch 000 is: 00: 00: 00
+test acc: 0.824
+The time elapse of epoch 001 is: 00: 00: 00
+test acc: 0.824
+The time elapse of epoch 002 is: 00: 00: 00
+test acc: 0.825
+The time elapse of epoch 003 is: 00: 00: 00
+test acc: 0.826
+The time elapse of epoch 004 is: 00: 00: 00
+test acc: 0.826
+
+
+lr=0.0005, first_hidden_size=512, num_layers=2, dropout=0.2
+(30000, 91)
+The time elapse of epoch 000 is: 00: 00: 00
+test acc: 0.823
+The time elapse of epoch 001 is: 00: 00: 00
+test acc: 0.824
+The time elapse of epoch 002 is: 00: 00: 00
+test acc: 0.824
+The time elapse of epoch 003 is: 00: 00: 00
+test acc: 0.824
+The time elapse of epoch 004 is: 00: 00: 00
+test acc: 0.825
+
+
+lr=0.0005, first_hidden_size=256, num_layers=4, dropout=0.0
+(30000, 91)
+The time elapse of epoch 000 is: 00: 00: 00
+test acc: 0.823
+The time elapse of epoch 001 is: 00: 00: 00
+test acc: 0.824
+The time elapse of epoch 002 is: 00: 00: 00
+test acc: 0.826
+The time elapse of epoch 003 is: 00: 00: 00
+test acc: 0.825
+The time elapse of epoch 004 is: 00: 00: 00
+test acc: 0.825
+
+
+lr=0.0005, first_hidden_size=256, num_layers=4, dropout=0.2
+(30000, 91)
+The time elapse of epoch 000 is: 00: 00: 00
+test acc: 0.818
+The time elapse of epoch 001 is: 00: 00: 00
+test acc: 0.820
+The time elapse of epoch 002 is: 00: 00: 00
+test acc: 0.825
+The time elapse of epoch 003 is: 00: 00: 00
+test acc: 0.826
+The time elapse of epoch 004 is: 00: 00: 00
+test acc: 0.825
+
+
+lr=0.0005, first_hidden_size=256, num_layers=3, dropout=0.0
+(30000, 91)
+The time elapse of epoch 000 is: 00: 00: 00
+test acc: 0.823
+The time elapse of epoch 001 is: 00: 00: 00
+test acc: 0.824
+The time elapse of epoch 002 is: 00: 00: 00
+test acc: 0.824
+The time elapse of epoch 003 is: 00: 00: 00
+test acc: 0.826
+The time elapse of epoch 004 is: 00: 00: 00
+test acc: 0.826
+
+
+lr=0.0005, first_hidden_size=256, num_layers=3, dropout=0.2
+(30000, 91)
+The time elapse of epoch 000 is: 00: 00: 00
+test acc: 0.819
+The time elapse of epoch 001 is: 00: 00: 00
+test acc: 0.825
+The time elapse of epoch 002 is: 00: 00: 00
+test acc: 0.824
+The time elapse of epoch 003 is: 00: 00: 00
+test acc: 0.825
+The time elapse of epoch 004 is: 00: 00: 00
+test acc: 0.824
+
+
+lr=0.0005, first_hidden_size=256, num_layers=2, dropout=0.0
+(30000, 91)
+The time elapse of epoch 000 is: 00: 00: 00
+test acc: 0.823
+The time elapse of epoch 001 is: 00: 00: 00
+test acc: 0.825
+The time elapse of epoch 002 is: 00: 00: 00
+test acc: 0.826
+The time elapse of epoch 003 is: 00: 00: 00
+test acc: 0.824
+The time elapse of epoch 004 is: 00: 00: 00
+test acc: 0.824
+
+
+lr=0.0005, first_hidden_size=256, num_layers=2, dropout=0.2
+(30000, 91)
+The time elapse of epoch 000 is: 00: 00: 00
+test acc: 0.822
+The time elapse of epoch 001 is: 00: 00: 00
+test acc: 0.824
+The time elapse of epoch 002 is: 00: 00: 00
+test acc: 0.825
+The time elapse of epoch 003 is: 00: 00: 00
+test acc: 0.822
+The time elapse of epoch 004 is: 00: 00: 00
+test acc: 0.826
+
+
+lr=0.0005, first_hidden_size=128, num_layers=4, dropout=0.0
+(30000, 91)
+The time elapse of epoch 000 is: 00: 00: 00
+test acc: 0.814
+The time elapse of epoch 001 is: 00: 00: 00
+test acc: 0.815
+The time elapse of epoch 002 is: 00: 00: 00
+test acc: 0.824
+The time elapse of epoch 003 is: 00: 00: 00
+test acc: 0.825
+The time elapse of epoch 004 is: 00: 00: 00
+test acc: 0.826
+
+
+lr=0.0005, first_hidden_size=128, num_layers=4, dropout=0.2
+(30000, 91)
+The time elapse of epoch 000 is: 00: 00: 00
+test acc: 0.812
+The time elapse of epoch 001 is: 00: 00: 00
+test acc: 0.819
+The time elapse of epoch 002 is: 00: 00: 00
+test acc: 0.822
+The time elapse of epoch 003 is: 00: 00: 00
+test acc: 0.824
+The time elapse of epoch 004 is: 00: 00: 00
+test acc: 0.824
+
+
+lr=0.0005, first_hidden_size=128, num_layers=3, dropout=0.0
+(30000, 91)
+The time elapse of epoch 000 is: 00: 00: 00
+test acc: 0.819
+The time elapse of epoch 001 is: 00: 00: 00
+test acc: 0.824
+The time elapse of epoch 002 is: 00: 00: 00
+test acc: 0.824
+The time elapse of epoch 003 is: 00: 00: 00
+test acc: 0.825
+The time elapse of epoch 004 is: 00: 00: 00
+test acc: 0.825
+
+
+lr=0.0005, first_hidden_size=128, num_layers=3, dropout=0.2
+(30000, 91)
+The time elapse of epoch 000 is: 00: 00: 00
+test acc: 0.817
+The time elapse of epoch 001 is: 00: 00: 00
+test acc: 0.824
+The time elapse of epoch 002 is: 00: 00: 00
+test acc: 0.825
+The time elapse of epoch 003 is: 00: 00: 00
+test acc: 0.825
+The time elapse of epoch 004 is: 00: 00: 00
+test acc: 0.826
+
+
+lr=0.0005, first_hidden_size=128, num_layers=2, dropout=0.0
+(30000, 91)
+The time elapse of epoch 000 is: 00: 00: 00
+test acc: 0.818
+The time elapse of epoch 001 is: 00: 00: 00
+test acc: 0.824
+The time elapse of epoch 002 is: 00: 00: 00
+test acc: 0.824
+The time elapse of epoch 003 is: 00: 00: 00
+test acc: 0.824
+The time elapse of epoch 004 is: 00: 00: 00
+test acc: 0.825
+
+
+lr=0.0005, first_hidden_size=128, num_layers=2, dropout=0.2
+(30000, 91)
+The time elapse of epoch 000 is: 00: 00: 00
+test acc: 0.812
+The time elapse of epoch 001 is: 00: 00: 00
+test acc: 0.821
+The time elapse of epoch 002 is: 00: 00: 00
+test acc: 0.823
+The time elapse of epoch 003 is: 00: 00: 00
+test acc: 0.824
+The time elapse of epoch 004 is: 00: 00: 00
+test acc: 0.823
+
+
+lr=0.001, first_hidden_size=512, num_layers=4, dropout=0.0
+(30000, 91)
+The time elapse of epoch 000 is: 00: 00: 00
+test acc: 0.820
+The time elapse of epoch 001 is: 00: 00: 00
+test acc: 0.820
+The time elapse of epoch 002 is: 00: 00: 00
+test acc: 0.826
+The time elapse of epoch 003 is: 00: 00: 00
+test acc: 0.825
+The time elapse of epoch 004 is: 00: 00: 00
+test acc: 0.825
+
+
+lr=0.001, first_hidden_size=512, num_layers=4, dropout=0.2
+(30000, 91)
+The time elapse of epoch 000 is: 00: 00: 00
+test acc: 0.822
+The time elapse of epoch 001 is: 00: 00: 00
+test acc: 0.824
+The time elapse of epoch 002 is: 00: 00: 00
+test acc: 0.824
+The time elapse of epoch 003 is: 00: 00: 00
+test acc: 0.823
+The time elapse of epoch 004 is: 00: 00: 00
+test acc: 0.822
+
+
+lr=0.001, first_hidden_size=512, num_layers=3, dropout=0.0
+(30000, 91)
+The time elapse of epoch 000 is: 00: 00: 00
+test acc: 0.825
+The time elapse of epoch 001 is: 00: 00: 00
+test acc: 0.824
+The time elapse of epoch 002 is: 00: 00: 00
+test acc: 0.826
+The time elapse of epoch 003 is: 00: 00: 00
+test acc: 0.826
+The time elapse of epoch 004 is: 00: 00: 00
+test acc: 0.822
+
+
+lr=0.001, first_hidden_size=512, num_layers=3, dropout=0.2
+(30000, 91)
+The time elapse of epoch 000 is: 00: 00: 00
+test acc: 0.824
+The time elapse of epoch 001 is: 00: 00: 00
+test acc: 0.825
+The time elapse of epoch 002 is: 00: 00: 00
+test acc: 0.824
+The time elapse of epoch 003 is: 00: 00: 00
+test acc: 0.825
+The time elapse of epoch 004 is: 00: 00: 00
+test acc: 0.824
+
+
+lr=0.001, first_hidden_size=512, num_layers=2, dropout=0.0
+(30000, 91)
+The time elapse of epoch 000 is: 00: 00: 00
+test acc: 0.824
+The time elapse of epoch 001 is: 00: 00: 00
+test acc: 0.821
+The time elapse of epoch 002 is: 00: 00: 00
+test acc: 0.824
+The time elapse of epoch 003 is: 00: 00: 00
+test acc: 0.826
+The time elapse of epoch 004 is: 00: 00: 00
+test acc: 0.825
+
+
+lr=0.001, first_hidden_size=512, num_layers=2, dropout=0.2
+(30000, 91)
+The time elapse of epoch 000 is: 00: 00: 00
+test acc: 0.824
+The time elapse of epoch 001 is: 00: 00: 00
+test acc: 0.826
+The time elapse of epoch 002 is: 00: 00: 00
+test acc: 0.824
+The time elapse of epoch 003 is: 00: 00: 00
+test acc: 0.825
+The time elapse of epoch 004 is: 00: 00: 00
+test acc: 0.824
+
+
+lr=0.001, first_hidden_size=256, num_layers=4, dropout=0.0
+(30000, 91)
+The time elapse of epoch 000 is: 00: 00: 00
+test acc: 0.826
+The time elapse of epoch 001 is: 00: 00: 00
+test acc: 0.825
+The time elapse of epoch 002 is: 00: 00: 00
+test acc: 0.826
+The time elapse of epoch 003 is: 00: 00: 00
+test acc: 0.826
+The time elapse of epoch 004 is: 00: 00: 00
+test acc: 0.823
+
+
+lr=0.001, first_hidden_size=256, num_layers=4, dropout=0.2
+(30000, 91)
+The time elapse of epoch 000 is: 00: 00: 00
+test acc: 0.824
+The time elapse of epoch 001 is: 00: 00: 00
+test acc: 0.824
+The time elapse of epoch 002 is: 00: 00: 00
+test acc: 0.824
+The time elapse of epoch 003 is: 00: 00: 00
+test acc: 0.824
+The time elapse of epoch 004 is: 00: 00: 00
+test acc: 0.821
+
+
+lr=0.001, first_hidden_size=256, num_layers=3, dropout=0.0
+(30000, 91)
+The time elapse of epoch 000 is: 00: 00: 00
+test acc: 0.826
+The time elapse of epoch 001 is: 00: 00: 00
+test acc: 0.825
+The time elapse of epoch 002 is: 00: 00: 00
+test acc: 0.825
+The time elapse of epoch 003 is: 00: 00: 00
+test acc: 0.824
+The time elapse of epoch 004 is: 00: 00: 00
+test acc: 0.826
+
+
+lr=0.001, first_hidden_size=256, num_layers=3, dropout=0.2
+(30000, 91)
+The time elapse of epoch 000 is: 00: 00: 00
+test acc: 0.820
+The time elapse of epoch 001 is: 00: 00: 00
+test acc: 0.824
+The time elapse of epoch 002 is: 00: 00: 00
+test acc: 0.825
+The time elapse of epoch 003 is: 00: 00: 00
+test acc: 0.826
+The time elapse of epoch 004 is: 00: 00: 00
+test acc: 0.825
+
+
+lr=0.001, first_hidden_size=256, num_layers=2, dropout=0.0
+(30000, 91)
+The time elapse of epoch 000 is: 00: 00: 00
+test acc: 0.824
+The time elapse of epoch 001 is: 00: 00: 00
+test acc: 0.825
+The time elapse of epoch 002 is: 00: 00: 00
+test acc: 0.824
+The time elapse of epoch 003 is: 00: 00: 00
+test acc: 0.824
+The time elapse of epoch 004 is: 00: 00: 00
+test acc: 0.826
+
+
+lr=0.001, first_hidden_size=256, num_layers=2, dropout=0.2
+(30000, 91)
+The time elapse of epoch 000 is: 00: 00: 00
+test acc: 0.822
+The time elapse of epoch 001 is: 00: 00: 00
+test acc: 0.825
+The time elapse of epoch 002 is: 00: 00: 00
+test acc: 0.824
+The time elapse of epoch 003 is: 00: 00: 00
+test acc: 0.826
+The time elapse of epoch 004 is: 00: 00: 00
+test acc: 0.825
+
+
+lr=0.001, first_hidden_size=128, num_layers=4, dropout=0.0
+(30000, 91)
+The time elapse of epoch 000 is: 00: 00: 00
+test acc: 0.823
+The time elapse of epoch 001 is: 00: 00: 00
+test acc: 0.826
+The time elapse of epoch 002 is: 00: 00: 00
+test acc: 0.826
+The time elapse of epoch 003 is: 00: 00: 00
+test acc: 0.821
+The time elapse of epoch 004 is: 00: 00: 00
+test acc: 0.822
+
+
+lr=0.001, first_hidden_size=128, num_layers=4, dropout=0.2
+(30000, 91)
+The time elapse of epoch 000 is: 00: 00: 00
+test acc: 0.822
+The time elapse of epoch 001 is: 00: 00: 00
+test acc: 0.823
+The time elapse of epoch 002 is: 00: 00: 00
+test acc: 0.825
+The time elapse of epoch 003 is: 00: 00: 00
+test acc: 0.824
+The time elapse of epoch 004 is: 00: 00: 00
+test acc: 0.826
+
+
+lr=0.001, first_hidden_size=128, num_layers=3, dropout=0.0
+(30000, 91)
+The time elapse of epoch 000 is: 00: 00: 00
+test acc: 0.823
+The time elapse of epoch 001 is: 00: 00: 00
+test acc: 0.823
+The time elapse of epoch 002 is: 00: 00: 00
+test acc: 0.826
+The time elapse of epoch 003 is: 00: 00: 00
+test acc: 0.825
+The time elapse of epoch 004 is: 00: 00: 00
+test acc: 0.825
+
+
+lr=0.001, first_hidden_size=128, num_layers=3, dropout=0.2
+(30000, 91)
+The time elapse of epoch 000 is: 00: 00: 00
+test acc: 0.823
+The time elapse of epoch 001 is: 00: 00: 00
+test acc: 0.823
+The time elapse of epoch 002 is: 00: 00: 00
+test acc: 0.825
+The time elapse of epoch 003 is: 00: 00: 00
+test acc: 0.825
+The time elapse of epoch 004 is: 00: 00: 00
+test acc: 0.826
+
+
+lr=0.001, first_hidden_size=128, num_layers=2, dropout=0.0
+(30000, 91)
+The time elapse of epoch 000 is: 00: 00: 00
+test acc: 0.823
+The time elapse of epoch 001 is: 00: 00: 00
+test acc: 0.823
+The time elapse of epoch 002 is: 00: 00: 00
+test acc: 0.823
+The time elapse of epoch 003 is: 00: 00: 00
+test acc: 0.825
+The time elapse of epoch 004 is: 00: 00: 00
+test acc: 0.826
+
+
+lr=0.001, first_hidden_size=128, num_layers=2, dropout=0.2
+(30000, 91)
+The time elapse of epoch 000 is: 00: 00: 00
+test acc: 0.821
+The time elapse of epoch 001 is: 00: 00: 00
+test acc: 0.825
+The time elapse of epoch 002 is: 00: 00: 00
+test acc: 0.825
+The time elapse of epoch 003 is: 00: 00: 00
+test acc: 0.824
+The time elapse of epoch 004 is: 00: 00: 00
+test acc: 0.825
+
+
