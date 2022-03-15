@@ -22,7 +22,7 @@ from resnet_softplus import ResNet18, ResNet50
 import argparse
 argparser = argparse.ArgumentParser()
 argparser.add_argument('--num_iter', type=int, default=100, help='number of iterations')
-argparser.add_argument('--lr', type=float, default=0.0005, help='lr')
+argparser.add_argument('--lr', type=float, default=0.5, help='lr')
 argparser.add_argument('--output_dir', type=str, default='output_expl_topk_pgd0/',
                         help='directory to save results to')
 argparser.add_argument('--method', help='algorithm for expls',
@@ -30,11 +30,14 @@ argparser.add_argument('--method', help='algorithm for expls',
                             'input_times_grad', 'uniform_grad'],
                        default='saliency')
 argparser.add_argument('--topk', type=int, default=20)
+argparser.add_argument('--max_num_pixels', type=int, default=20)
 argparser.add_argument('--smooth',type=bool, help="whether to use the smooth explanation or not",
                         default=False)
 argparser.add_argument('--verbose',type=bool, help="verbose", default=False)
 argparser.add_argument('--multiply_by_input',type=bool,
                         help="whether to multiply the explanation by input or not", default=False)
+argparser.add_argument('--add_to_seed', default=0, type=int,
+                        help="to be added to the seed")
 argparser.add_argument('--additive_lp_bound', type=float, default=0.03, help='l_p bound for additive attack')
 args = argparser.parse_args()
 
@@ -51,9 +54,9 @@ def project_L0_box_torch(y, k, lb, ub):
     return x
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-np.random.seed(72)
-torch.manual_seed(72)
-torch.cuda.manual_seed(72)
+np.random.seed(72+args.add_to_seed)
+torch.manual_seed(72+args.add_to_seed)
+torch.cuda.manual_seed(72+args.add_to_seed)
 data_mean = np.array([0.4914, 0.4822, 0.4465])
 data_std = np.array([0.2023, 0.1994, 0.2010])
 normalizer = utils.DifferentiableNormalize(mean=data_mean, std=data_std)
@@ -103,9 +106,9 @@ else:
         mask[_][topk_perbatch[_]] = 1
     mask = mask.view(org_expl.size())
 
-delta = nn.Parameter(torch.zeros_like(examples))
-x_adv = examples + delta
-optimizer = optim.Adam([delta], lr=args.lr)
+# delta = nn.Parameter(torch.zeros_like(examples))
+x_adv = copy.deepcopy(examples)
+optimizer = optim.Adam([x_adv], lr=args.lr)
 ######
 scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[args.num_iter//2], gamma=0.4)
 ######
@@ -123,9 +126,17 @@ for iter_no in range(args.num_iter):
     ##
     scheduler.step(iter_no)
     ##
+    # x_adv.data = x_adv.data + (torch.rand_like(x_adv.data)-0.5)*1e-12
+    ##
     # project delta
-    delta.data = project_L0_box_torch(delta.data.permute(0, 2, 3, 1), 20, 0.0, 1.0).permute(0, 3, 1, 2)
-    x_adv = examples + delta
+    x_adv.data = examples.data + project_L0_box_torch((x_adv-examples).data.permute(0, 2, 3, 1),
+        args.max_num_pixels, -examples.data.permute(0, 2, 3, 1),
+        (1.0-examples.data).permute(0, 2, 3, 1)).permute(0, 3, 1, 2).data
+    ###
+    print(torch.where(torch.abs(x_adv-examples)[5,0]>1e-10))
+    ###
+    ## return to valid value range
+    # x_adv.data = torch.clamp(x_adv.data, 0.0, 1.0)
     topk_ints = []
     for i in range(mask.size()[0]):
         _, topk_mask_ind = torch.topk(mask[i].flatten(), k=args.topk)
@@ -133,7 +144,19 @@ for iter_no in range(args.num_iter):
         topk_ints.append(float(len(np.intersect1d(topk_mask_ind.cpu().detach().numpy(),
                             topk_adv_ind.cpu().detach().numpy())))/args.topk)
     if args.verbose:
-        print("{}: expl loss: {}".format(iter_no, topk_ints))
-
-n_pixels = np.sum(np.amax(np.abs(delta.cpu().detach().numpy()) > 1e-10, axis=1), axis=(1,2))
+        print("{}: mean expl loss: {}".format(iter_no, np.mean(topk_ints)))
+# after finishing the iterations
+adv_expl = get_expl(model, normalizer.forward(x_adv), args.method, desired_index=labels, smooth=args.smooth,
+                    sigma=sigma, normalize=True, multiply_by_input=args.multiply_by_input)
+topk_ints = []
+for i in range(mask.size()[0]):
+    _, topk_mask_ind = torch.topk(mask[i].flatten(), k=args.topk)
+    _, topk_adv_ind = torch.topk(adv_expl[i].flatten(), k=args.topk)
+    topk_ints.append(float(len(np.intersect1d(topk_mask_ind.cpu().detach().numpy(),
+                        topk_adv_ind.cpu().detach().numpy())))/args.topk)
+############################
+print(torch.max(x_adv))
+print("mean top-k intersection: ", np.mean(topk_ints))
+n_pixels = np.sum(np.amax(np.abs((x_adv-examples).cpu().detach().numpy()) > 1e-10, axis=1), axis=(1,2))
 print("total pixels changed: ", n_pixels)
+torch.save(x_adv, f"{args.output_dir}x_{args.method}.pth")
