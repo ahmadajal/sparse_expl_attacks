@@ -67,7 +67,7 @@ test_loader = torch.utils.data.DataLoader(
         batch_size=128,
         shuffle=True
     )
-BATCH_SIZE = 32
+BATCH_SIZE = 64
 indices = np.random.randint(128, size=BATCH_SIZE)
 #### load images #####
 dataiter = iter(test_loader)
@@ -122,6 +122,9 @@ for iter_no in range(args.num_iter):
     # print(l1_norm)
     # loss = expl_loss + args.smooth_loss_c * torch.mean(l1_norm)
     expl_loss.backward()
+    # normalize gradient
+    x_adv.grad = x_adv.grad / (1e-10 + torch.sum(torch.abs(x_adv.grad), dim=(1,2,3), keepdim=True))
+    ###
     optimizer.step()
     ##
     scheduler.step(iter_no)
@@ -133,7 +136,7 @@ for iter_no in range(args.num_iter):
         args.max_num_pixels, -examples.data.permute(0, 2, 3, 1),
         (1.0-examples.data).permute(0, 2, 3, 1)).permute(0, 3, 1, 2).data
     ###
-    print(torch.where(torch.abs(x_adv-examples)[5,0]>1e-10))
+    # print(torch.where(torch.abs(x_adv-examples)[5,0]>1e-10))
     ###
     ## return to valid value range
     # x_adv.data = torch.clamp(x_adv.data, 0.0, 1.0)
