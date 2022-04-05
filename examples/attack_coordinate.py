@@ -102,6 +102,8 @@ if len(sigma)==1:
 org_expl = get_expl(model, normalizer.forward(examples), args.method, desired_index=labels, smooth=args.smooth,
                     sigma=sigma, normalize=True, multiply_by_input=args.multiply_by_input)
 org_expl = org_expl.detach()
+org_logits = F.softmax(model(normalizer.forward(examples)), dim=1)
+org_logits = org_logits.detach()
 if BATCH_SIZE == 1:
     mask = torch.zeros_like(org_expl).flatten()
     mask[torch.argsort(org_expl.view(-1))[-args.topk:]]=1
@@ -134,7 +136,7 @@ for iter_no in range(args.num_iter):
     expl_loss = torch.mean(torch.sum(adv_expl*mask, dim=(1,2,3), dtype=torch.float))
     # print(expl_loss)
     # print(l1_norm)
-    # loss = expl_loss + args.smooth_loss_c * torch.mean(l1_norm)
+    # loss = expl_loss + 1 * F.mse_loss(F.softmax(model(normalizer.forward(x_adv)), dim=1), org_logits)
     expl_loss.backward()
     # normalize gradient
     x_adv.grad = x_adv.grad / (1e-10 + torch.sum(torch.abs(x_adv.grad), dim=(1,2,3), keepdim=True))
@@ -174,6 +176,11 @@ for i in range(mask.size()[0]):
     topk_ints.append(float(len(np.intersect1d(topk_mask_ind.cpu().detach().numpy(),
                         topk_adv_ind.cpu().detach().numpy())))/args.topk)
 ############################
+preds_org = model(normalizer.forward(examples)).argmax(dim=1)
+print("org acc: ", (labels==preds_org).sum()/BATCH_SIZE)
+preds = model(normalizer.forward(adv)).argmax(dim=1)
+print("adv acc: ", (labels==preds).sum()/BATCH_SIZE)
+############################
 print(torch.max(adv))
 print("mean top-k intersection: ", np.mean(topk_ints))
 print("all top-k intersection: ", topk_ints)
@@ -181,3 +188,7 @@ n_pixels = np.sum(np.amax(np.abs((adv-examples).cpu().detach().numpy()) > 1e-10,
 print("total pixels changed: ", n_pixels)
 print("avg pixels changed: ", np.mean(n_pixels))
 torch.save(adv, f"{args.output_dir}x_{args.method}.pth")
+adv_expl = get_expl(model, normalizer.forward(adv), args.method, desired_index=labels, smooth=args.smooth,
+                    sigma=sigma, normalize=True, multiply_by_input=args.multiply_by_input)
+print("avg cosd from org expl", np.mean([spatial.distance.cosine(adv_expl[i].detach().cpu().flatten(),
+                    org_expl[i].detach().cpu().flatten()) for i in range(adv_expl.size()[0])]))
