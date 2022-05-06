@@ -7,16 +7,14 @@ import torch.optim as optim
 import torch.nn.functional as F
 import torch.utils.data as data_utils
 import rtdl
-import sklearn
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
 import zero
 from captum.attr import Saliency, InputXGradient, IntegratedGradients, DeepLift
 import argparse
 argparser = argparse.ArgumentParser()
-argparser.add_argument('--num_iter', type=int, default=40, help='number of iterations')
 argparser.add_argument('--lr', type=float, default=0.01, help='lr')
-argparser.add_argument('--output_dir', type=str, default='output_topk_tabular_data/pgd0/',
+argparser.add_argument('--output_dir', type=str, default='output_topk_tabular_data/one_time/',
                         help='directory to save results to')
 argparser.add_argument('--method', help='algorithm for expls',
                        choices=['deep_lift', 'saliency', 'integrated_grad',
@@ -44,17 +42,24 @@ def convert_relu_to_softplus(model, beta):
             convert_relu_to_softplus(child, beta)
     return model
 
-# project to l0 box
-def project_L0_box_torch(y, k, lb, ub):
-    x = torch.clone(y)
-    p1 = torch.sum(x**2, dim=-1)
-    p2 = torch.minimum(torch.minimum(ub - x, x - lb), torch.zeros_like(x))
-    p2 = torch.sum(p2**2, dim=-1)
-    p3 = torch.sort(torch.reshape(p1-p2, (p2.size()[0],-1)))[0][:,-k]
-    x = x*(torch.logical_and(lb <=x, x <= ub)) + lb*(lb > x) + ub*(x > ub)
-    x = x * torch.unsqueeze((p1 - p2) >= p3.reshape([-1, 1, 1]), -1)
-
-    return x
+def topk_coord(array, used_inds, k=1):
+    array_abs = torch.abs(array)
+    if len(used_inds)>0:
+        array_abs[np.array(used_inds).T.tolist()] = 0.0
+    inds = torch.topk(array_abs.view((array.size()[0],-1)), k=k, dim=1)[1].detach().cpu().numpy()
+    for k_ind in range(k):
+        used_inds = used_inds + [[i, j[k_ind]] for i,j in enumerate(inds)]
+    ###
+    new_inds = np.array([[i, j[0]] for i,j in enumerate(inds)])
+    for k_ind in range(1,k):
+        new_inds = np.concatenate((new_inds, np.array([[i, j[k_ind]] for i,j in enumerate(inds)])))
+    ###
+    new_inds = new_inds.T.tolist()
+    ###
+    new_array = torch.zeros_like(array)
+    new_array[new_inds] = array[new_inds]
+    ###
+    return new_array, used_inds
 
 def normalize_expl(expl):
     expl = torch.abs(expl)
@@ -142,7 +147,7 @@ examples = examples.requires_grad_(True)
 ###
 print(examples.size())
 BATCH_SIZE = examples.size()[0]
-####
+
 ####
 # sigma for the smooth grad and uniform grad methods
 # sigma = tuple((torch.max(examples[i]) -
@@ -150,6 +155,7 @@ BATCH_SIZE = examples.size()[0]
 # if len(sigma)==1:
 #     sigma=sigma[0]
 
+####
 # creating the mask for top-k attack
 explanation = expl_methods[args.method](model)
 if args.task_type=="binclass":
@@ -175,11 +181,11 @@ if args.task_type == "binclass":
 else:
     org_logits = F.softmax(model(examples), dim=1)
 org_logits = org_logits.detach()
-
+###
 x_adv = copy.deepcopy(examples)
 optimizer = optim.Adam([x_adv], lr=args.lr)
 
-# ub and lb for l_0 projection:
+# ub and lb for valid range:
 if args.dataset == "yahoo":
     lb = 0.0
     ub = 1.0
@@ -187,37 +193,29 @@ else:
     lb = torch.min(X["test"], dim=0)[0].detach()
     ub = torch.max(X["test"], dim=0)[0].detach()
 
-for iter_no in range(args.num_iter):
-    optimizer.zero_grad()
-    if args.task_type == "binclass":
-        adv_expl = explanation.attribute(x_adv)
-    else:
-        adv_expl = explanation.attribute(x_adv, target=labels)
-    adv_expl = normalize_expl(adv_expl)
-    expl_loss = torch.mean(torch.sum(adv_expl*mask, dim=1, dtype=torch.float))
-    if args.task_type == "binclass":
-        out_loss = F.mse_loss(torch.sigmoid(model(x_adv)), org_logits)
-    else:
-        out_loss = F.mse_loss(F.softmax(model(x_adv), dim=1), org_logits)
-    loss = expl_loss + args.out_loss_coeff * out_loss
-    loss.backward()
-    # normalize gradient
-    x_adv.grad = x_adv.grad / (1e-10 + torch.sum(torch.abs(x_adv.grad), dim=1, keepdim=True))
-    optimizer.step()
-    ##
-    # project delta
-    x_adv.data = examples.data + project_L0_box_torch((x_adv-examples).data.unsqueeze(dim=2).unsqueeze(dim=3),
-        args.max_num_pixels, (lb-examples.data).unsqueeze(dim=2).unsqueeze(dim=3),
-        (ub-examples.data).unsqueeze(dim=2).unsqueeze(dim=3)).squeeze(dim=3).squeeze(dim=2).data
-    ###
-    topk_ints = []
-    for i in range(mask.size()[0]):
-        _, topk_mask_ind = torch.topk(mask[i].flatten(), k=args.topk)
-        _, topk_adv_ind = torch.topk(adv_expl[i].flatten(), k=args.topk)
-        topk_ints.append(float(len(np.intersect1d(topk_mask_ind.cpu().detach().numpy(),
-                            topk_adv_ind.cpu().detach().numpy())))/args.topk)
-    if args.verbose:
-        print("{}: mean expl loss: {}".format(iter_no, np.mean(topk_ints)))
+
+######
+optimizer.zero_grad()
+if args.task_type == "binclass":
+    adv_expl = explanation.attribute(x_adv)
+else:
+    adv_expl = explanation.attribute(x_adv, target=labels)
+adv_expl = normalize_expl(adv_expl)
+expl_loss = torch.mean(torch.sum(adv_expl*mask, dim=1, dtype=torch.float))
+if args.task_type == "binclass":
+    out_loss = F.mse_loss(torch.sigmoid(model(x_adv)), org_logits)
+else:
+    out_loss = F.mse_loss(F.softmax(model(x_adv), dim=1), org_logits)
+loss = expl_loss + args.out_loss_coeff * out_loss
+loss.backward()
+# normalize gradient
+x_adv.grad = x_adv.grad / (1e-10 + torch.sum(torch.abs(x_adv.grad), dim=1, keepdim=True))
+# pick the top k coordinates of the update
+x_adv.grad, used_indices = topk_coord(x_adv.grad, [], k=args.topk)
+###
+optimizer.step()
+# update step
+x_adv.data = examples.data + torch.clip((x_adv-examples).data, (lb-examples).data, (ub-examples).data)
 
 # after finishing the iterations
 # load the relu model again:
@@ -256,4 +254,4 @@ print("all top-k intersection: ", topk_ints)
 print("mean top-k intersection and std: ", np.mean(topk_ints), np.std(topk_ints))
 n_pixels = torch.sum(torch.abs(x_adv-examples) > 1e-10, dim=1)
 print("total pixels changed: ", n_pixels)
-torch.save(x_adv, f"{args.output_dir}x_{args.method}_{args.dataset}.pth")
+torch.save(x_adv, f"{args.output_dir}x_{args.method}.pth")
