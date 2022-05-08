@@ -1,7 +1,5 @@
 import numpy as np
-import re
 import copy
-from PIL import Image
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -17,13 +15,14 @@ sys.path.append("../attacks/")
 import mister_ed.utils.pytorch_utils as utils
 from utils import load_image, torch_to_image, get_expl, convert_relu_to_softplus, plot_overview, UniGrad
 sys.path.append("../../pytorch-cifar/models/")
-from resnet_softplus import ResNet18, ResNet50
+from resnet_softplus_10 import ResNet18, ResNet50
+from resnet import ResNet18 as ResNet18_ReLu
 
 import argparse
 argparser = argparse.ArgumentParser()
 argparser.add_argument('--num_iter', type=int, default=100, help='number of iterations')
-argparser.add_argument('--lr', type=float, default=0.5, help='lr')
-argparser.add_argument('--output_dir', type=str, default='output_expl_topk_pgd0/',
+argparser.add_argument('--lr', type=float, default=0.1, help='lr')
+argparser.add_argument('--output_dir', type=str, default='output_topk_cifar-10/pgd0/',
                         help='directory to save results to')
 argparser.add_argument('--method', help='algorithm for expls',
                        choices=['lrp', 'guided_backprop', 'saliency', 'integrated_grad',
@@ -38,7 +37,6 @@ argparser.add_argument('--multiply_by_input',type=bool,
                         help="whether to multiply the explanation by input or not", default=False)
 argparser.add_argument('--add_to_seed', default=0, type=int,
                         help="to be added to the seed")
-argparser.add_argument('--additive_lp_bound', type=float, default=0.03, help='l_p bound for additive attack')
 args = argparser.parse_args()
 
 # project to l0 box
@@ -75,15 +73,25 @@ images_batch, labels_batch = next(dataiter)
 examples = images_batch[indices].to(device)
 labels = labels_batch[indices].to(device)
 ###
-examples = examples.requires_grad_(True)
-###
 model = ResNet18()
 model.load_state_dict(torch.load("../../Robust_Explanations/notebooks/models/RN18_standard.pth")["net"])
 model = model.eval().to(device)
 ####
-normalizer = utils.DifferentiableNormalize(mean=data_mean,
-                                               std=data_std)
-
+model_relu = ResNet18_ReLu()
+model_relu.load_state_dict(torch.load("../../Robust_Explanations/notebooks/models/RN18_standard.pth")["net"])
+model_relu = model_relu.eval().to(device)
+####
+# keep only data points for which the model predicts correctly
+with torch.no_grad():
+    preds = model_relu(normalizer.forward(examples)).argmax(dim=1).detach()
+    samples_to_pick = (preds==labels)
+    examples = examples[samples_to_pick]
+    labels = labels[samples_to_pick]
+###
+examples = examples.requires_grad_(True)
+###
+print(examples.size())
+BATCH_SIZE = examples.size()[0]
 ####
 # sigma for the smooth grad and uniform grad methods
 sigma = tuple((torch.max(examples[i]) -
@@ -95,6 +103,8 @@ if len(sigma)==1:
 org_expl = get_expl(model, normalizer.forward(examples), args.method, desired_index=labels, smooth=args.smooth,
                     sigma=sigma, normalize=True, multiply_by_input=args.multiply_by_input)
 org_expl = org_expl.detach()
+org_logits = F.softmax(model(normalizer.forward(examples)), dim=1)
+org_logits = org_logits.detach()
 if BATCH_SIZE == 1:
     mask = torch.zeros_like(org_expl).flatten()
     mask[torch.argsort(org_expl.view(-1))[-args.topk:]]=1
@@ -106,40 +116,26 @@ else:
         mask[_][topk_perbatch[_]] = 1
     mask = mask.view(org_expl.size())
 
-# delta = nn.Parameter(torch.zeros_like(examples))
 x_adv = copy.deepcopy(examples)
 optimizer = optim.Adam([x_adv], lr=args.lr)
-######
-scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[args.num_iter//2], gamma=0.4)
-######
 
 for iter_no in range(args.num_iter):
     optimizer.zero_grad()
     adv_expl = get_expl(model, normalizer.forward(x_adv), args.method, desired_index=labels, smooth=args.smooth,
                         sigma=sigma, normalize=True, multiply_by_input=args.multiply_by_input)
     expl_loss = torch.mean(torch.sum(adv_expl*mask, dim=(1,2,3), dtype=torch.float))
-    # print(expl_loss)
-    # print(l1_norm)
-    # loss = expl_loss + args.smooth_loss_c * torch.mean(l1_norm)
-    expl_loss.backward()
+    loss = expl_loss + 1e1 * F.mse_loss(F.softmax(model(normalizer.forward(x_adv)), dim=1), org_logits)
+    loss.backward()
     # normalize gradient
     x_adv.grad = x_adv.grad / (1e-10 + torch.sum(torch.abs(x_adv.grad), dim=(1,2,3), keepdim=True))
     ###
     optimizer.step()
-    ##
-    scheduler.step(iter_no)
-    ##
-    # x_adv.data = x_adv.data + (torch.rand_like(x_adv.data)-0.5)*1e-12
     ##
     # project delta
     x_adv.data = examples.data + project_L0_box_torch((x_adv-examples).data.permute(0, 2, 3, 1),
         args.max_num_pixels, -examples.data.permute(0, 2, 3, 1),
         (1.0-examples.data).permute(0, 2, 3, 1)).permute(0, 3, 1, 2).data
     ###
-    # print(torch.where(torch.abs(x_adv-examples)[5,0]>1e-10))
-    ###
-    ## return to valid value range
-    # x_adv.data = torch.clamp(x_adv.data, 0.0, 1.0)
     topk_ints = []
     for i in range(mask.size()[0]):
         _, topk_mask_ind = torch.topk(mask[i].flatten(), k=args.topk)
@@ -148,18 +144,30 @@ for iter_no in range(args.num_iter):
                             topk_adv_ind.cpu().detach().numpy())))/args.topk)
     if args.verbose:
         print("{}: mean expl loss: {}".format(iter_no, np.mean(topk_ints)))
-# after finishing the iterations
-adv_expl = get_expl(model, normalizer.forward(x_adv), args.method, desired_index=labels, smooth=args.smooth,
+# after finishing the iterations, compute the org and adv explanation for the
+# ReLu model
+###
+org_expl = get_expl(model_relu, normalizer.forward(examples), args.method, desired_index=labels, smooth=args.smooth,
+                    sigma=sigma, normalize=True, multiply_by_input=args.multiply_by_input)
+adv_expl = get_expl(model_relu, normalizer.forward(x_adv), args.method, desired_index=labels, smooth=args.smooth,
                     sigma=sigma, normalize=True, multiply_by_input=args.multiply_by_input)
 topk_ints = []
 for i in range(mask.size()[0]):
-    _, topk_mask_ind = torch.topk(mask[i].flatten(), k=args.topk)
+    _, topk_mask_ind = torch.topk(org_expl[i].flatten(), k=args.topk)
     _, topk_adv_ind = torch.topk(adv_expl[i].flatten(), k=args.topk)
     topk_ints.append(float(len(np.intersect1d(topk_mask_ind.cpu().detach().numpy(),
                         topk_adv_ind.cpu().detach().numpy())))/args.topk)
 ############################
+preds_org = model_relu(normalizer.forward(examples)).argmax(dim=1)
+print("org acc: ", (labels==preds_org).sum()/BATCH_SIZE)
+preds = model_relu(normalizer.forward(x_adv)).argmax(dim=1)
+print("adv acc: ", (labels==preds).sum()/BATCH_SIZE)
+############################
 print(torch.max(x_adv))
+print("all top-k intersection: ", topk_ints)
 print("mean top-k intersection: ", np.mean(topk_ints))
 n_pixels = np.sum(np.amax(np.abs((x_adv-examples).cpu().detach().numpy()) > 1e-10, axis=1), axis=(1,2))
 print("total pixels changed: ", n_pixels)
 torch.save(x_adv, f"{args.output_dir}x_{args.method}.pth")
+print("avg cosd from org expl", np.mean([spatial.distance.cosine(adv_expl[i].detach().cpu().flatten(),
+                    org_expl[i].detach().cpu().flatten()) for i in range(adv_expl.size()[0])]))

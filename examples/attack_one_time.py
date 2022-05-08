@@ -20,16 +20,14 @@ from resnet import ResNet18 as ResNet18_ReLu
 
 import argparse
 argparser = argparse.ArgumentParser()
-argparser.add_argument('--num_iter', type=int, default=100, help='number of iterations')
-argparser.add_argument('--lr', type=float, default=0.1, help='lr')
-argparser.add_argument('--output_dir', type=str, default='output_topk_cifar-10/coordinate/',
+argparser.add_argument('--lr', type=float, default=0.05, help='lr')
+argparser.add_argument('--output_dir', type=str, default='output_topk_cifar-10/onetime/',
                         help='directory to save results to')
 argparser.add_argument('--method', help='algorithm for expls',
                        choices=['lrp', 'guided_backprop', 'saliency', 'integrated_grad',
                             'input_times_grad', 'uniform_grad'],
                        default='saliency')
 argparser.add_argument('--topk', type=int, default=20)
-argparser.add_argument('--max_num_pixels', type=int, default=20)
 argparser.add_argument('--smooth',type=bool, help="whether to use the smooth explanation or not",
                         default=False)
 argparser.add_argument('--verbose',type=bool, help="verbose", default=False)
@@ -39,33 +37,33 @@ argparser.add_argument('--add_to_seed', default=0, type=int,
                         help="to be added to the seed")
 args = argparser.parse_args()
 
-def topk_coord(array, used_inds, indices_to_use, k=1):
+def topk_coord(array, used_inds, k=1):
     array_norm = torch.norm(array, p=1, dim=1)
     if len(used_inds)>0:
         array_norm[np.array(used_inds).T.tolist()] = 0.0
-    inds = torch.topk(array_norm.view((array.size()[0],-1)), k=1, dim=1)[1]
-    chosen_inds = [np.unravel_index(i, shape=(array.size()[2], array.size()[3])) for i in inds.cpu().numpy()]
-    chosen_inds = [[i, j[0][0], j[1][0]] for i,j in enumerate(chosen_inds)]
-    chosen_inds = np.array(chosen_inds)[indices_to_use].tolist()
-    #
-    new_inds0 = np.array([[e[0], 0, e[1], e[2]] for e in chosen_inds]).T.tolist()
-    new_inds1 = np.array([[e[0], 1, e[1], e[2]] for e in chosen_inds]).T.tolist()
-    new_inds2 = np.array([[e[0], 2, e[1], e[2]] for e in chosen_inds]).T.tolist()
-    ### using the previous inds doesn't add to the sparsity
-    ### and as we clamp later doesn't also violate the valid range
-    new_inds_used0 = np.array([[e[0], 0, e[1], e[2]] for e in used_inds]).T.tolist()
-    new_inds_used1 = np.array([[e[0], 1, e[1], e[2]] for e in used_inds]).T.tolist()
-    new_inds_used2 = np.array([[e[0], 2, e[1], e[2]] for e in used_inds]).T.tolist()
+    inds = torch.topk(array_norm.view((array.size()[0],-1)), k=k, dim=1)[1]
+    new_inds = [np.unravel_index(i, shape=(array.size()[2], array.size()[3])) for i in inds.cpu().numpy()]
+    for k_ind in range(k):
+        used_inds = used_inds + [[i, j[0][k_ind], j[1][k_ind]] for i,j in enumerate(new_inds)]
+    ###
+    new_inds0 = np.array([[i, 0, j[0][0], j[1][0]] for i,j in enumerate(new_inds)])
+    new_inds1 = np.array([[i, 1, j[0][0], j[1][0]] for i,j in enumerate(new_inds)])
+    new_inds2 = np.array([[i, 2, j[0][0], j[1][0]] for i,j in enumerate(new_inds)])
+    for k_ind in range(1,k):
+        new_inds0 = np.concatenate((new_inds0, np.array([[i, 0, j[0][k_ind], j[1][k_ind]] for i,j in enumerate(new_inds)])))
+        new_inds1 = np.concatenate((new_inds1, np.array([[i, 1, j[0][k_ind], j[1][k_ind]] for i,j in enumerate(new_inds)])))
+        new_inds2 = np.concatenate((new_inds2, np.array([[i, 2, j[0][k_ind], j[1][k_ind]] for i,j in enumerate(new_inds)])))
+    ###
+    new_inds0 = new_inds0.T.tolist()
+    new_inds1 = new_inds1.T.tolist()
+    new_inds2 = new_inds2.T.tolist()
     ###
     new_array = torch.zeros_like(array)
     new_array[new_inds0] = array[new_inds0]
-    new_array[new_inds_used0] = array[new_inds_used0]
     new_array[new_inds1] = array[new_inds1]
-    new_array[new_inds_used1] = array[new_inds_used1]
     new_array[new_inds2] = array[new_inds2]
-    new_array[new_inds_used2] = array[new_inds_used2]
     ###
-    return new_array, chosen_inds
+    return new_array, used_inds
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 np.random.seed(72+args.add_to_seed)
@@ -92,7 +90,7 @@ labels = labels_batch[indices].to(device)
 model = ResNet18()
 model.load_state_dict(torch.load("../../Robust_Explanations/notebooks/models/RN18_standard.pth")["net"])
 model = model.eval().to(device)
-#### ReLu model
+####
 model_relu = ResNet18_ReLu()
 model_relu.load_state_dict(torch.load("../../Robust_Explanations/notebooks/models/RN18_standard.pth")["net"])
 model_relu = model_relu.eval().to(device)
@@ -103,7 +101,7 @@ with torch.no_grad():
     samples_to_pick = (preds==labels)
     examples = examples[samples_to_pick]
     labels = labels[samples_to_pick]
-###
+####
 examples = examples.requires_grad_(True)
 ###
 print(examples.size())
@@ -114,7 +112,7 @@ sigma = tuple((torch.max(examples[i]) -
         torch.min(examples[i])).item() * 0.1 for i in range(examples.size()[0]))
 if len(sigma)==1:
     sigma=sigma[0]
-
+####
 # creating the mask for top-k attack
 org_expl = get_expl(model, normalizer.forward(examples), args.method, desired_index=labels, smooth=args.smooth,
                     sigma=sigma, normalize=True, multiply_by_input=args.multiply_by_input)
@@ -131,55 +129,27 @@ else:
     for _ in range(mask.size()[0]):
         mask[_][topk_perbatch[_]] = 1
     mask = mask.view(org_expl.size())
-
+###
 x_adv = copy.deepcopy(examples)
 optimizer = optim.Adam([x_adv], lr=args.lr)
 ######
-# we need to stop perturbing more features if the topk is zero for an instance
-unfinished_batches = set(np.arange(BATCH_SIZE))
-unfinished_batches_list = sorted(unfinished_batches)
-max_not_reached = set(np.arange(BATCH_SIZE))
-# when we do an update along a dimension, we keep that in a list so to avoid
-# choosing the same dimension in the next iterations
-used_indices = []
-#
-for iter_no in range(args.num_iter):
-    optimizer.zero_grad()
-    adv_expl = get_expl(model, normalizer.forward(x_adv), args.method, desired_index=labels, smooth=args.smooth,
-                        sigma=sigma, normalize=True, multiply_by_input=args.multiply_by_input)
-    expl_loss = torch.mean(torch.sum(adv_expl*mask, dim=(1,2,3), dtype=torch.float))
-    loss = expl_loss + 1e1 * F.mse_loss(F.softmax(model(normalizer.forward(x_adv)), dim=1), org_logits)
-    loss.backward()
-    # normalize gradient
-    x_adv.grad = x_adv.grad / (1e-10 + torch.sum(torch.abs(x_adv.grad), dim=(1,2,3), keepdim=True))
-    # pick the top coordinate
-    indices_to_use = sorted(unfinished_batches.intersection(max_not_reached))
-    x_adv.grad, chosen_indices = topk_coord(x_adv.grad, used_indices, indices_to_use)
-    ###
-    optimizer.step()
-    # update the used indices:
-    used_indices = used_indices + chosen_indices
-    # update step
-    x_adv.data = examples.data + torch.clip((x_adv-examples).data, -examples.data, (1.0-examples.data))
-    ###
-    topk_ints = []
-    for i in range(mask.size()[0]):
-        _, topk_mask_ind = torch.topk(mask[i].flatten(), k=args.topk)
-        _, topk_adv_ind = torch.topk(adv_expl[i].flatten(), k=args.topk)
-        topk_ints.append(float(len(np.intersect1d(topk_mask_ind.cpu().detach().numpy(),
-                            topk_adv_ind.cpu().detach().numpy())))/args.topk)
-    unfinished_batches = unfinished_batches - set(np.where(np.array(topk_ints)==0.0)[0])
-    unfinished_batches_list = sorted(unfinished_batches)
-    n_pixels = np.sum(np.amax(np.abs((x_adv-examples).cpu().detach().numpy()) > 1e-10, axis=1), axis=(1,2))
-    max_not_reached = set(np.where(n_pixels < args.max_num_pixels)[0])
-    if args.verbose:
-        print("{}: mean expl loss: {}".format(iter_no, np.mean(topk_ints)))
-        print("num remaining: ", len(unfinished_batches))
-    if len(unfinished_batches) == 0:
-        break
-# after finishing the iterations, compute the org and  explanation for the
-# ReLu model
+optimizer.zero_grad()
+adv_expl = get_expl(model, normalizer.forward(x_adv), args.method, desired_index=labels, smooth=args.smooth,
+                    sigma=sigma, normalize=True, multiply_by_input=args.multiply_by_input)
+expl_loss = torch.mean(torch.sum(adv_expl*mask, dim=(1,2,3), dtype=torch.float))
+loss = expl_loss + 1e1 * F.mse_loss(F.softmax(model(normalizer.forward(x_adv)), dim=1), org_logits)
+loss.backward()
+# normalize gradient
+x_adv.grad = x_adv.grad / (1e-10 + torch.sum(torch.abs(x_adv.grad), dim=(1,2,3), keepdim=True))
+# pick the top k coordinates of the update
+x_adv.grad, used_indices = topk_coord(x_adv.grad, [], k=args.topk)
 ###
+optimizer.step()
+# update step
+x_adv.data = examples.data + torch.clip((x_adv-examples).data, -examples.data, (1.0-examples.data))
+
+# after finishing the attack, compute the org and adv explanation for the
+# ReLu model
 org_expl = get_expl(model_relu, normalizer.forward(examples), args.method, desired_index=labels, smooth=args.smooth,
                     sigma=sigma, normalize=True, multiply_by_input=args.multiply_by_input)
 adv_expl = get_expl(model_relu, normalizer.forward(x_adv), args.method, desired_index=labels, smooth=args.smooth,
@@ -194,9 +164,9 @@ for i in range(mask.size()[0]):
 preds_org = model_relu(normalizer.forward(examples)).argmax(dim=1)
 print("org acc: ", (labels==preds_org).sum()/BATCH_SIZE)
 preds = model_relu(normalizer.forward(x_adv)).argmax(dim=1)
-print(" acc: ", (labels==preds).sum()/BATCH_SIZE)
+print("adv acc: ", (labels==preds).sum()/BATCH_SIZE)
 ############################
-print(torch.max(x_adv))
+print(torch.max(x_adv), torch.min(x_adv))
 print("mean top-k intersection: ", np.mean(topk_ints))
 print("all top-k intersection: ", topk_ints)
 n_pixels = np.sum(np.amax(np.abs((x_adv-examples).cpu().detach().numpy()) > 1e-10, axis=1), axis=(1,2))
