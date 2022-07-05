@@ -215,11 +215,19 @@ def get_expl(model, x, method, desired_index=None, smooth=False, sigma=1.0, abs_
     ###################
     # Update: added abs value for normalize
     if normalize and heatmap.size()[0]==1:
-        heatmap = torch.sum(torch.abs(heatmap.squeeze()), 0, True)
-        heatmap = heatmap / torch.sum(heatmap)
+        if abs_value:
+            heatmap = torch.sum(torch.abs(heatmap.squeeze()), 0, True)
+            heatmap = heatmap / torch.sum(heatmap)
+        else:
+            heatmap = torch.sum(heatmap.squeeze(), 0, True)
+            heatmap = heatmap / torch.sum(heatmap)
     if normalize and heatmap.size()[0]>1:
-        heatmap = torch.sum(torch.abs(heatmap), 1, True)
-        heatmap = heatmap / torch.sum(heatmap, (1,2,3), True)
+        if abs_value:
+            heatmap = torch.sum(torch.abs(heatmap), 1, True)
+            heatmap = heatmap / torch.sum(heatmap, (1,2,3), True)
+        else:
+            heatmap = torch.sum(heatmap, 1, True)
+            heatmap = heatmap / torch.sum(heatmap, (1,2,3), True)
     ### release the memory ###
     torch.cuda.empty_cache()
     ##########################
