@@ -26,7 +26,7 @@ argparser.add_argument('--output_dir', type=str, default='output_topk_cifar-10/c
                         help='directory to save results to')
 argparser.add_argument('--method', help='algorithm for expls',
                        choices=['lrp', 'guided_backprop', 'saliency', 'integrated_grad',
-                            'input_times_grad', 'uniform_grad'],
+                            'input_times_grad', 'uniform_grad', 'deep_lift'],
                        default='saliency')
 argparser.add_argument('--topk', type=int, default=20)
 argparser.add_argument('--max_num_pixels', type=int, default=20)

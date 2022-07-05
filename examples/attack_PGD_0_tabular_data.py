@@ -34,6 +34,7 @@ argparser.add_argument('--add_to_seed', default=0, type=int,
 argparser.add_argument('--out_loss_coeff', type=float, default=1.0)
 argparser.add_argument('--dataset', type=str, default="epsilon")
 argparser.add_argument('--task_type', type=str, default="binclass")
+argparser.add_argument('--model_type', type=str, default="resnet")
 args = argparser.parse_args()
 
 def convert_relu_to_softplus(model, beta):
@@ -123,9 +124,15 @@ examples = X["test"][indices].to(device)
 labels = y["test"][indices].to(device)
 ###
 if args.dataset == "epsilon":
-    model = torch.load("../preparing_tabular_data/models/rtdl_resnet_epsilon.pth")
+    if args.model_type == "resnet":
+        model = torch.load("../preparing_tabular_data/models/rtdl_resnet_epsilon.pth")
+    else:
+        model = torch.load("../preparing_tabular_data/models/rtdl_mlp_epsilon.pth")
 elif args.dataset == "yahoo":
-    model = torch.load("../preparing_tabular_data/models/rtdl_resnet_yahoo.pth")
+    if args.model_type == "resnet":
+        model = torch.load("../preparing_tabular_data/models/rtdl_resnet_yahoo.pth")
+    else:
+        model = torch.load("../preparing_tabular_data/models/rtdl_mlp_yahoo.pth")
 model = convert_relu_to_softplus(model, beta=10)
 model = model.eval().to(device)
 # keep only data points for which the model predicts correctly
@@ -222,9 +229,17 @@ for iter_no in range(args.num_iter):
 # after finishing the iterations
 # load the relu model again:
 if args.dataset == "epsilon":
-    model = torch.load("../preparing_tabular_data/models/rtdl_resnet_epsilon.pth")
+    if args.model_type == "resnet":
+        model = torch.load("../preparing_tabular_data/models/rtdl_resnet_epsilon.pth")
+    else:
+        model = torch.load("../preparing_tabular_data/models/rtdl_mlp_epsilon.pth")
 elif args.dataset == "yahoo":
-    model = torch.load("../preparing_tabular_data/models/rtdl_resnet_yahoo.pth")
+    if args.model_type == "resnet":
+        model = torch.load("../preparing_tabular_data/models/rtdl_resnet_yahoo.pth")
+    else:
+        model = torch.load("../preparing_tabular_data/models/rtdl_mlp_yahoo.pth")
+else:
+    raise ValueError("invalid dataset name: {}".format(args.dataset))
 ####
 explanation = expl_methods[args.method](model)
 ####
@@ -255,5 +270,5 @@ print(torch.max(x_adv))
 print("all top-k intersection: ", topk_ints)
 print("mean top-k intersection and std: ", np.mean(topk_ints), np.std(topk_ints))
 n_pixels = torch.sum(torch.abs(x_adv-examples) > 1e-10, dim=1)
-print("total pixels changed: ", n_pixels)
+print("total pixels changed: ", n_pixels.detach().cpu().numpy().tolist())
 torch.save(x_adv, f"{args.output_dir}x_{args.method}_{args.dataset}.pth")

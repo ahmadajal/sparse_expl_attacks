@@ -26,7 +26,7 @@ argparser.add_argument('--output_dir', type=str, default='output_topk_cifar-10/p
                         help='directory to save results to')
 argparser.add_argument('--method', help='algorithm for expls',
                        choices=['lrp', 'guided_backprop', 'saliency', 'integrated_grad',
-                            'input_times_grad', 'uniform_grad'],
+                            'input_times_grad', 'uniform_grad', 'deep_lift'],
                        default='saliency')
 argparser.add_argument('--topk', type=int, default=20)
 argparser.add_argument('--max_num_pixels', type=int, default=20)
@@ -124,6 +124,9 @@ for iter_no in range(args.num_iter):
     adv_expl = get_expl(model, normalizer.forward(x_adv), args.method, desired_index=labels, smooth=args.smooth,
                         sigma=sigma, normalize=True, multiply_by_input=args.multiply_by_input)
     expl_loss = torch.mean(torch.sum(adv_expl*mask, dim=(1,2,3), dtype=torch.float))
+    ###
+    # preds_adv = model(normalizer.forward(x_adv)).argmax(dim=1).detach().cpu()
+    # loss = expl_loss - 1*torch.mean(model(normalizer.forward(x_adv))[torch.arange(BATCH_SIZE), preds_adv], dtype=torch.float)
     loss = expl_loss + 1e1 * F.mse_loss(F.softmax(model(normalizer.forward(x_adv)), dim=1), org_logits)
     loss.backward()
     # normalize gradient
