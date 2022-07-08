@@ -14,7 +14,7 @@ import argparse
 argparser = argparse.ArgumentParser()
 argparser.add_argument('--num_iter', type=int, default=10, help='number of iterations')
 argparser.add_argument('--lr', type=float, default=0.01, help='lr')
-argparser.add_argument('--output_dir', type=str, default='output_topk_tabular_data/coordinate/',
+argparser.add_argument('--output_dir', type=str, default='output_topk_tabular_data_adult/coordinate/',
                         help='directory to save results to')
 argparser.add_argument('--method', help='algorithm for expls',
                        choices=['deep_lift', 'saliency', 'integrated_grad',
@@ -316,8 +316,8 @@ else:
 print("adv acc: ", (labels==preds).sum()/BATCH_SIZE)
 ############################
 print(torch.max(x_adv))
-print("all male contrb: ", adv_expl[:, 63])
-print("mean male contrb: ", torch.mean(adv_expl[:, 63]).item(), torch.std(adv_expl[:, 63]).item())
+print("all female contrb: ", adv_expl[:, 63])
+print("mean female contrb: ", torch.mean(adv_expl[:, 63]).item(), torch.std(adv_expl[:, 63]).item())
 n_pixels = torch.sum(torch.abs(x_adv-examples) > 1e-12, dim=1)
 print("total pixels changed: ", n_pixels)
 print("avg pixels changed: ", np.mean(n_pixels.detach().cpu().numpy()))
