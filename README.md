@@ -6,6 +6,7 @@ The files in this repository are organized as follows:
 - `attacks` folder: contains some helper scripts for calculating explanations of different explanation methods and also for performing the attacks.
 - `examples` folder: contains the scripts for the explanation attacks introduced in the paper.
 - `preparing_tabular_data` folder: contains some helper notebooks/scripts which were used to preprocess the tabular datasets, train a neual network on them and optimize the hyper-parameters of the neural networks trained on tabular datasets.
+- `sample_attack_results` folder: contains the results of the sparse explanation attacks against the explanations of a few Imagenet samples.
 
 For instance, if you want to run the greedy attack against the explanations of a random batch of CIFAR-10 images, simply run:
 ```
