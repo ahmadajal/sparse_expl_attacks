@@ -51,6 +51,16 @@ def project_L0_box_torch(y, k, lb, ub):
 
     return x
 
+def weighted_intersect(x, y):
+    assert len(x)==len(y)
+    k = len(x)
+    ints, i_x, _ = np.intersect1d(x, y, return_indices=True)
+    if len(ints)==0:
+        return 0
+    else:
+        # print(np.sort(i_x))
+        return sum(k-np.sort(i_x)) / (k*(k+1)/2)
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 np.random.seed(72+args.add_to_seed)
 torch.manual_seed(72+args.add_to_seed)
@@ -158,8 +168,10 @@ topk_ints = []
 for i in range(mask.size()[0]):
     _, topk_mask_ind = torch.topk(org_expl[i].flatten(), k=args.topk)
     _, topk_adv_ind = torch.topk(adv_expl[i].flatten(), k=args.topk)
-    topk_ints.append(float(len(np.intersect1d(topk_mask_ind.cpu().detach().numpy(),
-                        topk_adv_ind.cpu().detach().numpy())))/args.topk)
+    # topk_ints.append(float(len(np.intersect1d(topk_mask_ind.cpu().detach().numpy(),
+    #                     topk_adv_ind.cpu().detach().numpy())))/args.topk)
+    topk_ints.append(weighted_intersect(topk_mask_ind.cpu().detach().numpy(),
+                                        topk_adv_ind.cpu().detach().numpy()))
 ############################
 preds_org = model_relu(normalizer.forward(examples)).argmax(dim=1)
 print("org acc: ", (labels==preds_org).sum()/BATCH_SIZE)
