@@ -172,3 +172,7 @@ preparing_tabular_data/data/
 fast_soft_sort/
 preparing_tabular_data/
 examples/*.sh
+examples/output_topk_cifar-10/
+examples/output_topk_imagenet/
+examples/output_topk_tabular_data/
+examples/output_topk_tabular_data_adult/
