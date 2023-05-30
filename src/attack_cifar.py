@@ -14,7 +14,7 @@ from scipy.stats import spearmanr as spr
 import scipy.spatial as spatial
 
 from sparse_expl_attacks.sparse_attack import SparseAttack
-from sparse_expl_attacks.utils import DifferentiableNormalize, get_expl
+from sparse_expl_attacks.utils import DifferentiableNormalize, get_expl, topk_intersect
 from sparse_expl_attacks import image_datasets_dir, output_dir, models_weights_dir
 from models.resnet_softplus_10 import ResNet18
 from models.resnet import ResNet18 as ResNet18_ReLu
@@ -112,18 +112,13 @@ adv_expl = get_expl(model=model_relu,
                     normalize=True)
 topk_ints = []
 for i in range(examples.size()[0]):
-    _, topk_mask_ind = torch.topk(org_expl[i].flatten(), k=args.topk)
-    _, topk_adv_ind = torch.topk(adv_expl[i].flatten(), k=args.topk)
-    topk_ints.append(float(len(np.intersect1d(topk_mask_ind.cpu().detach().numpy(),
-                        topk_adv_ind.cpu().detach().numpy())))/args.topk)
-    # topk_ints.append(weighted_intersect(topk_mask_ind.cpu().detach().numpy(),
-    #                                     topk_adv_ind.cpu().detach().numpy()))
-############################
+    topk_ints.append(topk_intersect(org_expl[i], adv_expl[i], args.topk))
+    
 preds_org = model_relu(normalizer.forward(examples)).argmax(dim=1)
 print("org acc: ", (labels==preds_org).sum()/BATCH_SIZE)
 preds = model_relu(normalizer.forward(x_adv)).argmax(dim=1)
 print(" acc: ", (labels==preds).sum()/BATCH_SIZE)
-############################
+
 print(torch.max(x_adv))
 print("mean top-k intersection: ", np.mean(topk_ints))
 print("all top-k intersection: ", topk_ints)

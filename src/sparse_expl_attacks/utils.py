@@ -280,20 +280,41 @@ def change_beta_softplus(model: nn.Module, beta: float) -> nn.Module:
     return model
 
 
-def weighted_intersect(x: np.ndarray, y: np.ndarray) -> float:
-    """Weighted intersections between two 1-d sorted arrays. The weights are based on 
+def topk_intersect(x: torch.Tensor, y: torch.Tensor, k: int) -> float:
+    """Top-k intersection between two tensors.
+
+    Args:
+        x: First tensor. shape = (C, H, W).
+        y: Second tensor. shape = (C, H, W).
+        k: top-k value.
+
+    Returns:
+        The topk intersection value, i.e, how many coordinates are shared
+        among the topk values of tensors x and y.
+    """
+    _, topk_x_ind = torch.topk(x.flatten(), k=k)
+    _, topk_y_ind = torch.topk(y.flatten(), k=k)
+    intersect = float(len(np.intersect1d(topk_x_ind.cpu().detach().numpy(),
+                        topk_y_ind.cpu().detach().numpy())))/k
+    return intersect
+
+
+def weighted_topk_intersect(x: torch.Tensor, y: torch.Tensor, k: int) -> float:
+    """Weighted top-k intersections between two tensors. The weights are based on 
     the rank of the coordinates.
 
     Args:
-        x: Array 1.
-        y: Array 2.
+        x: First tensor. shape = (C, H, W).
+        y: Second tensor. shape = (C, H, W).
+        k: top-k value.
 
     Returns:
         The weighted intersection value.
     """
-    assert len(x)==len(y)
-    k = len(x)
-    ints, i_x, _ = np.intersect1d(x, y, return_indices=True)
+    _, topk_x_ind = torch.topk(x.flatten(), k=k)
+    _, topk_y_ind = torch.topk(y.flatten(), k=k)
+    assert len(topk_x_ind)==len(topk_y_ind)
+    ints, i_x, _ = np.intersect1d(topk_x_ind, topk_y_ind, return_indices=True)
     if len(ints)==0:
         return 0
     else:
