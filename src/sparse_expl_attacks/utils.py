@@ -115,17 +115,19 @@ def next_topk_coord(array: torch.Tensor, used_inds: List, available_batches: Lis
     chosen_inds = []
     for k_ind in range(k):
         chosen_inds = chosen_inds +  [[i, j[0][k_ind], j[1][k_ind]] for i,j in enumerate(new_inds)]
-    chosen_inds = np.array(chosen_inds)[available_batches].tolist()
+    chosen_inds = sorted(chosen_inds, key=lambda x: x[0])
+    chosen_inds = np.array(chosen_inds).reshape((array.size()[0], k, -1))
+    chosen_inds = chosen_inds[available_batches].reshape((-1, chosen_inds.shape[-1])).tolist()
     #
     new_inds0 = np.array([[e[0], 0, e[1], e[2]] for e in chosen_inds]).T.tolist()
     new_inds1 = np.array([[e[0], 1, e[1], e[2]] for e in chosen_inds]).T.tolist()
     new_inds2 = np.array([[e[0], 2, e[1], e[2]] for e in chosen_inds]).T.tolist()
-    ### using the previous inds doesn't add to the sparsity
-    ### and as we clamp later doesn't also violate the valid range
+    # Using the previous inds doesn't add to the sparsity, 
+    # and as we clamp later doesn't also violate the valid range
     new_inds_used0 = np.array([[e[0], 0, e[1], e[2]] for e in used_inds]).T.tolist()
     new_inds_used1 = np.array([[e[0], 1, e[1], e[2]] for e in used_inds]).T.tolist()
     new_inds_used2 = np.array([[e[0], 2, e[1], e[2]] for e in used_inds]).T.tolist()
-    ###
+    
     new_array = torch.zeros_like(array)
     new_array[new_inds0] = array[new_inds0]
     new_array[new_inds_used0] = array[new_inds_used0]
@@ -133,7 +135,7 @@ def next_topk_coord(array: torch.Tensor, used_inds: List, available_batches: Lis
     new_array[new_inds_used1] = array[new_inds_used1]
     new_array[new_inds2] = array[new_inds2]
     new_array[new_inds_used2] = array[new_inds_used2]
-    ###
+    
     return new_array, chosen_inds
 
 
