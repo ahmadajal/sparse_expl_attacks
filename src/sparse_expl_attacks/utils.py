@@ -204,7 +204,7 @@ def get_expl(model: nn.Module,
     if true_label is None:
         true_label = model(x).argmax()
     # For batch size = 1.
-    if len(sigma) == 1:
+    if sigma and len(sigma) == 1:
         sigma = sigma[0]
 
     # Defining the explanation class to call.
