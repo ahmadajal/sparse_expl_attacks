@@ -76,12 +76,6 @@ class SparseAttack:
         # sigma should not be None for smooth and uniform gradient.
         if self.expl_method == "smooth_grad":
             assert sigma
-        # Keep only instances for which the model prediction is correct.
-        with torch.no_grad():
-            preds = self.model_relu(self.normalizer.forward(x_input)).argmax(dim=1).detach()
-            samples_to_pick = (preds==y_input)
-            x_input = x_input[samples_to_pick]
-            y_input = y_input[samples_to_pick]
         
         x_input = x_input.requires_grad_(True)
         BATCH_SIZE = x_input.size()[0]
