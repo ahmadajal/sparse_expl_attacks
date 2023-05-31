@@ -77,6 +77,8 @@ with torch.no_grad():
     samples_to_pick = (preds==labels)
     examples = examples[samples_to_pick]
     labels = labels[samples_to_pick]
+BATCH_SIZE = examples.size()[0]
+print(f"number of samples: {examples.size()[0]}")
 # Compute sigma for the smooth gradient method.
 if args.expl_method == "smooth_grad":
     sigma = tuple((torch.max(examples[i]) -
@@ -133,7 +135,7 @@ print("total pixels changed: ", n_pixels)
 print("avg pixels changed: ", np.mean(n_pixels))
 save_dir = os.path.join(output_dir, "cifar-10", args.attack_type)
 if not os.path.exists(save_dir):
-    os.mkdir(save_dir)
+    os.makedirs(save_dir)
 torch.save(x_adv, os.path.join(save_dir, f"x_{args.expl_method}.pth"))
 print("avg cosd from org expl", np.mean([spatial.distance.cosine(adv_expl[i].detach().cpu().flatten(),
                     org_expl[i].detach().cpu().flatten()) for i in range(adv_expl.size()[0])]))
