@@ -17,6 +17,7 @@ class SparseAttack:
             lr: float,
             topk: int,
             max_num_features: int,
+            normalizer: DifferentiableNormalize,
             manual_device: str = None,
         ) -> None:
         """This attack finds a sparse perturbation to manipulate the explanation 
@@ -34,6 +35,7 @@ class SparseAttack:
             lr: Learning rate.
             topk: The number of top k attributes in the topk loss.
             max_num_features: Maximum number of input features permitted to be perturbed.
+            normalizer: normalizer object to normalize the input.
             manual_device: Manually set the device on which the atack will be performed. If 
             equal to None then gpu will be selected if available.
         """
@@ -44,6 +46,7 @@ class SparseAttack:
         self.lr = lr
         self.topk = topk
         self.max_num_features = max_num_features
+        self.normalizer = normalizer
         if manual_device:
             self.device = manual_device
         else:
@@ -53,7 +56,6 @@ class SparseAttack:
                attack_type: str, 
                x_input: torch.Tensor, 
                y_input: torch.Tensor, 
-               normalizer: DifferentiableNormalize, 
                sigma: Tuple = None,
                verbose: bool = False) -> torch.Tensor:
         """Perform the sparse explanation attack against the explanations of instances
@@ -64,7 +66,6 @@ class SparseAttack:
             "pgd0", and "single_step".
             x_input: Input to the model, size = (B, C, H, W).
             y_input: The ground truth label corresponding to x_input.
-            normalizer: normalizer object to normalize the input.
             sigma: Standard deviation of the noise for smooth and uniform gradient methods.
             verbose: Print the result of the attack after each iteration.
         """
@@ -77,7 +78,7 @@ class SparseAttack:
             assert sigma
         # Keep only instances for which the model prediction is correct.
         with torch.no_grad():
-            preds = self.model_relu(x_input).argmax(dim=1).detach() # TODO: check normalizer.
+            preds = self.model_relu(self.normalizer.forward(x_input)).argmax(dim=1).detach()
             samples_to_pick = (preds==y_input)
             x_input = x_input[samples_to_pick]
             y_input = y_input[samples_to_pick]
@@ -87,7 +88,7 @@ class SparseAttack:
 
         # Creating the mask for the top-k attack.
         org_expl = get_expl(model=self.model, 
-                            x=normalizer.forward(x_input), 
+                            x=self.normalizer.forward(x_input), 
                             expl_method=self.expl_method, 
                             device=self.device,
                             true_label=y_input, 
@@ -110,7 +111,6 @@ class SparseAttack:
             x_input,
             y_input,
             mask,
-            normalizer,
             BATCH_SIZE,
             sigma,
             verbose
@@ -121,7 +121,6 @@ class SparseAttack:
                           x_input: torch.Tensor, 
                           y_input: torch.Tensor, 
                           mask: torch.Tensor, 
-                          normalizer: DifferentiableNormalize, 
                           batch_size: int, 
                           sigma: Tuple = None,
                           verbose: bool = False) -> torch.Tensor:
@@ -131,13 +130,12 @@ class SparseAttack:
             x_input: Input to the model, size = (B, C, H, W).
             y_input: The ground truth label corresponding to x_input.
             mask: Mask tensor for the topk attack.
-            normalizer: normalizer object to normalize the input.
             batch_size: Batch size of the input
             sigma: Standard deviation of the noise for smooth and uniform gradient methods.
             verbose: Print the result of the attack after each iteration.
         """
         # Logits of the model for the non_perturbed input.
-        org_logits = F.softmax(self.model(normalizer.forward(x_input)), dim=1)
+        org_logits = F.softmax(self.model(self.normalizer.forward(x_input)), dim=1)
         org_logits = org_logits.detach()
         x_adv = copy.deepcopy(x_input)
         optimizer = optim.Adam([x_adv], lr=self.lr)
@@ -151,8 +149,8 @@ class SparseAttack:
         for iter_no in range(self.num_iter):
             optimizer.zero_grad()
             adv_expl = get_expl(model=self.model, 
-                                x=normalizer.forward(x_adv), 
-                                expl_method=self.method, 
+                                x=self.normalizer.forward(x_adv), 
+                                expl_method=self.expl_method, 
                                 device=self.device,
                                 true_label=y_input, 
                                 sigma=sigma, 
@@ -160,7 +158,7 @@ class SparseAttack:
             # topk explanation loss.
             expl_loss = torch.mean(torch.sum(adv_expl*mask, dim=(1,2,3), dtype=torch.float))
             # Logits of the model for the adversarial input.
-            adv_logits = F.softmax(self.model(normalizer.forward(x_adv)), dim=1)
+            adv_logits = F.softmax(self.model(self.normalizer.forward(x_adv)), dim=1)
             loss = expl_loss + 1e1 * F.mse_loss(adv_logits, org_logits)
             loss.backward()
             # Normalize gradient
@@ -197,8 +195,7 @@ class SparseAttack:
     def pgd0_iterations(self, 
                         x_input: torch.Tensor, 
                         y_input: torch.Tensor, 
-                        mask: torch.Tensor, 
-                        normalizer: DifferentiableNormalize, 
+                        mask: torch.Tensor,  
                         batch_size: int, 
                         sigma: Tuple = None,
                         verbose: bool = False) -> torch.Tensor:
@@ -208,13 +205,12 @@ class SparseAttack:
             x_input: Input to the model, size = (B, C, H, W).
             y_input: The ground truth label corresponding to x_input.
             mask: Mask tensor for the topk attack.
-            normalizer: normalizer object to normalize the input.
             batch_size: Batch size of the input
             sigma: Standard deviation of the noise for smooth and uniform gradient methods.
             verbose: Print the result of the attack after each iteration.
         """
         # Logits of the model for the non_perturbed input.
-        org_logits = F.softmax(self.model(normalizer.forward(x_input)), dim=1)
+        org_logits = F.softmax(self.model(self.normalizer.forward(x_input)), dim=1)
         org_logits = org_logits.detach()
         x_adv = copy.deepcopy(x_input)
         optimizer = optim.Adam([x_adv], lr=self.lr)
@@ -222,8 +218,8 @@ class SparseAttack:
         for iter_no in range(self.num_iter):
             optimizer.zero_grad()
             adv_expl = get_expl(model=self.model, 
-                                x=normalizer.forward(x_adv), 
-                                expl_method=self.method, 
+                                x=self.normalizer.forward(x_adv), 
+                                expl_method=self.expl_method, 
                                 device=self.device,
                                 true_label=y_input, 
                                 sigma=sigma, 
@@ -231,7 +227,7 @@ class SparseAttack:
             # topk explanation loss.
             expl_loss = torch.mean(torch.sum(adv_expl*mask, dim=(1,2,3), dtype=torch.float))
             # Logits of the model for the adversarial input.
-            adv_logits = F.softmax(self.model(normalizer.forward(x_adv)), dim=1)
+            adv_logits = F.softmax(self.model(self.normalizer.forward(x_adv)), dim=1)
             loss = expl_loss + 1e1 * F.mse_loss(adv_logits, org_logits)
             loss.backward()
             # Normalize gradient
@@ -259,8 +255,7 @@ class SparseAttack:
     def single_step_iterations(self, 
                                x_input: torch.Tensor, 
                                y_input: torch.Tensor, 
-                               mask: torch.Tensor, 
-                               normalizer: DifferentiableNormalize, 
+                               mask: torch.Tensor,  
                                batch_size: int, 
                                sigma: Tuple = None,
                                verbose: bool = False) -> torch.Tensor:
@@ -270,19 +265,18 @@ class SparseAttack:
             x_input: Input to the model, size = (B, C, H, W).
             y_input: The ground truth label corresponding to x_input.
             mask: Mask tensor for the topk attack.
-            normalizer: normalizer object to normalize the input.
             batch_size: Batch size of the input
             sigma: Standard deviation of the noise for smooth and uniform gradient methods.
             verbose: Print the result of the attack after each iteration.
         """
-        org_logits = F.softmax(self.model(normalizer.forward(x_input)), dim=1)
+        org_logits = F.softmax(self.model(self.normalizer.forward(x_input)), dim=1)
         org_logits = org_logits.detach()
         x_adv = copy.deepcopy(x_input)
         optimizer = optim.Adam([x_adv], lr=self.lr)
         optimizer.zero_grad()
         adv_expl = get_expl(model=self.model, 
-                            x=normalizer.forward(x_adv), 
-                            expl_method=self.method, 
+                            x=self.normalizer.forward(x_adv), 
+                            expl_method=self.expl_method, 
                             device=self.device,
                             true_label=y_input, 
                             sigma=sigma, 
@@ -290,7 +284,7 @@ class SparseAttack:
         # topk explanation loss.
         expl_loss = torch.mean(torch.sum(adv_expl*mask, dim=(1,2,3), dtype=torch.float))
         # Logits of the model for the adversarial input.
-        adv_logits = F.softmax(self.model(normalizer.forward(x_adv)), dim=1)
+        adv_logits = F.softmax(self.model(self.normalizer.forward(x_adv)), dim=1)
         loss = expl_loss + 1e1 * F.mse_loss(adv_logits, org_logits)
         loss.backward()
         # Normalize gradient
