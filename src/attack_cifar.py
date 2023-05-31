@@ -71,6 +71,12 @@ model = model.eval().to(device)
 model_relu = ResNet18_ReLu()
 model_relu.load_state_dict(torch.load(os.path.join(models_weights_dir, "RN18_standard.pth"))["net"])
 model_relu = model_relu.eval().to(device)
+# Keep only instances for which the model prediction is correct.
+with torch.no_grad():
+    preds = model_relu(normalizer.forward(examples)).argmax(dim=1).detach()
+    samples_to_pick = (preds==labels)
+    examples = examples[samples_to_pick]
+    labels = labels[samples_to_pick]
 # Compute sigma for the smooth gradient method.
 if args.expl_method == "smooth_grad":
     sigma = tuple((torch.max(examples[i]) -
@@ -85,13 +91,13 @@ sparse_attack = SparseAttack(
     num_iter=args.num_iter,
     lr=args.lr,
     topk=args.topk,
-    max_num_features=args.max_num_features
+    max_num_features=args.max_num_features, 
+    normalizer=normalizer
 )
 x_adv = sparse_attack.attack(
     attack_type=args.attack_type,
     x_input=examples,
     y_input=labels,
-    normalizer=normalizer,
     sigma=sigma
 )
 # after finishing the iterations, compute the org and adversarial explanation 
