@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
-from sparse_expl_attacks.utils import get_expl, DifferentiableNormalize, next_topk_coord, project_L0_box_torch
+from sparse_expl_attacks.utils import get_expl, DifferentiableNormalize, next_topk_coord, project_L0_box_torch, topk_intersect
 
 class SparseAttack:
     def __init__(
@@ -169,10 +169,7 @@ class SparseAttack:
             # Compute the topk intersection in this iteration.
             topk_ints = []
             for i in range(mask.size()[0]):
-                _, topk_mask_ind = torch.topk(mask[i].flatten(), k=self.topk)
-                _, topk_adv_ind = torch.topk(adv_expl[i].flatten(), k=self.topk)
-                topk_ints.append(float(len(np.intersect1d(topk_mask_ind.cpu().detach().numpy(),
-                                    topk_adv_ind.cpu().detach().numpy())))/self.topk)
+                topk_ints.append(topk_intersect(mask[i], adv_expl[i], self.topk))
             unfinished_batches = unfinished_batches - set(np.where(np.array(topk_ints)==0.0)[0])
             n_pixels = np.sum(np.amax(np.abs((x_adv-x_input).cpu().detach().numpy()) > 1e-10, axis=1), axis=(1,2))
             max_not_reached = set(np.where(n_pixels < self.max_num_features)[0])
@@ -236,10 +233,7 @@ class SparseAttack:
             # Compute the topk intersection in this iteration.
             topk_ints = []
             for i in range(mask.size()[0]):
-                _, topk_mask_ind = torch.topk(mask[i].flatten(), k=self.topk)
-                _, topk_adv_ind = torch.topk(adv_expl[i].flatten(), k=self.topk)
-                topk_ints.append(float(len(np.intersect1d(topk_mask_ind.cpu().detach().numpy(),
-                                    topk_adv_ind.cpu().detach().numpy())))/self.topk)
+                topk_ints.append(topk_intersect(mask[i], adv_expl[i], self.topk))
             if verbose:
                 print("{}: mean expl loss: {}".format(iter_no, np.mean(topk_ints)))
 
