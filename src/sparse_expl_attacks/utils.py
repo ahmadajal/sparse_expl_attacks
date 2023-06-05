@@ -234,14 +234,7 @@ def get_expl(
     if multiply_by_input:
         heatmap = x * heatmap
     # Normalizing the explanation such that sum of all attributions is one.
-    if normalize and heatmap.size()[0] == 1:
-        if abs_value:
-            heatmap = torch.sum(torch.abs(heatmap.squeeze()), 0, True)
-            heatmap = heatmap / torch.sum(heatmap)
-        else:
-            heatmap = torch.sum(heatmap.squeeze(), 0, True)
-            heatmap = heatmap / torch.sum(heatmap)
-    if normalize and heatmap.size()[0] > 1:
+    if normalize:
         if abs_value:
             heatmap = torch.sum(torch.abs(heatmap), 1, True)
             heatmap = heatmap / torch.sum(heatmap, (1, 2, 3), True)
