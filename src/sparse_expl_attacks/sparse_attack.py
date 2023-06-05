@@ -26,6 +26,7 @@ class SparseAttack:
         lr: float,
         topk: int,
         max_num_features: int,
+        gamma: float,
         normalizer: DifferentiableNormalize,
         manual_device: str = None,
     ) -> None:
@@ -44,6 +45,7 @@ class SparseAttack:
             lr: Learning rate.
             topk: The number of top k attributes in the topk loss.
             max_num_features: Maximum number of input features permitted to be perturbed.
+            gamma: The output loss term coefficient in the attack loss.
             normalizer: normalizer object to normalize the input.
             manual_device: Manually set the device on which the atack will be performed.
             If equal to None then gpu will be selected if available.
@@ -55,6 +57,7 @@ class SparseAttack:
         self.lr = lr
         self.topk = topk
         self.max_num_features = max_num_features
+        self.gamma = gamma
         self.normalizer = normalizer
         if manual_device:
             self.device = manual_device
@@ -169,7 +172,7 @@ class SparseAttack:
             )
             # Logits of the model for the adversarial input.
             adv_logits = F.softmax(self.model(self.normalizer.forward(x_adv)), dim=1)
-            loss = expl_loss + 1e1 * F.mse_loss(adv_logits, org_logits)
+            loss = expl_loss + self.gamma * F.mse_loss(adv_logits, org_logits)
             loss.backward()
             # Normalize gradient
             x_adv.grad = x_adv.grad / (
@@ -251,7 +254,7 @@ class SparseAttack:
             )
             # Logits of the model for the adversarial input.
             adv_logits = F.softmax(self.model(self.normalizer.forward(x_adv)), dim=1)
-            loss = expl_loss + 1e1 * F.mse_loss(adv_logits, org_logits)
+            loss = expl_loss + self.gamma * F.mse_loss(adv_logits, org_logits)
             loss.backward()
             # Normalize gradient
             x_adv.grad = x_adv.grad / (
@@ -316,7 +319,7 @@ class SparseAttack:
         expl_loss = torch.mean(torch.sum(adv_expl * mask, dim=(1, 2, 3), dtype=torch.float))
         # Logits of the model for the adversarial input.
         adv_logits = F.softmax(self.model(self.normalizer.forward(x_adv)), dim=1)
-        loss = expl_loss + 1e1 * F.mse_loss(adv_logits, org_logits)
+        loss = expl_loss + self.gamma * F.mse_loss(adv_logits, org_logits)
         loss.backward()
         # Normalize gradient
         x_adv.grad = x_adv.grad / (

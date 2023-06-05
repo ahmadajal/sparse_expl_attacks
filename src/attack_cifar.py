@@ -37,6 +37,7 @@ argparser.add_argument(
 )
 argparser.add_argument("--topk", type=int, default=20)
 argparser.add_argument("--max_num_features", type=int, default=20)
+argparser.add_argument("--gamma", type=float, default=1e1)
 argparser.add_argument("--verbose", type=bool, help="verbose", default=False)
 argparser.add_argument(
     "--add_to_seed",
@@ -75,9 +76,7 @@ examples = images_batch[indices].to(device)
 labels = labels_batch[indices].to(device)
 # Softplus model
 model = ResNet18()
-model.load_state_dict(
-    torch.load(os.path.join(models_weights_dir, "RN18_standard.pth"))["net"]
-)
+model.load_state_dict(torch.load(os.path.join(models_weights_dir, "RN18_standard.pth"))["net"])
 model = model.eval().to(device)
 # ReLu model
 model_relu = ResNet18_ReLu()
@@ -110,6 +109,7 @@ sparse_attack = SparseAttack(
     lr=args.lr,
     topk=args.topk,
     max_num_features=args.max_num_features,
+    gamma=args.gamma,
     normalizer=normalizer,
 )
 x_adv = sparse_attack.attack(
