@@ -142,7 +142,7 @@ for i in range(examples.size()[0]):
 preds_org = model_relu(normalizer.forward(examples)).argmax(dim=1)
 print("org acc: ", (labels == preds_org).sum() / BATCH_SIZE)
 preds = model_relu(normalizer.forward(x_adv)).argmax(dim=1)
-print(" acc: ", (labels == preds).sum() / BATCH_SIZE)
+print("adv acc: ", (labels == preds).sum() / BATCH_SIZE)
 
 print(torch.max(x_adv))
 print("mean top-k intersection: ", np.mean(topk_ints))
