@@ -163,16 +163,10 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
-# Results and stuff
-examples/data/
-examples/output_expl_mass_center_relu/
-examples/output_expl_topk_relu/
-examples/output_expl_topk_relu_l1/
-preparing_tabular_data/data/
+# Results and old files
+attacks/
+examples/
 fast_soft_sort/
 preparing_tabular_data/
-examples/*.sh
-examples/output_topk_cifar-10/
-examples/output_topk_imagenet/
-examples/output_topk_tabular_data/
-examples/output_topk_tabular_data_adult/
+SparseFool/
+results/
