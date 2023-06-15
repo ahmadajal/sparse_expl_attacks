@@ -2,6 +2,7 @@ import copy
 from typing import Tuple
 
 import numpy as np
+import scipy.spatial as spatial
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -84,7 +85,13 @@ class SparseAttack:
             verbose: Print the result of the attack after each iteration.
         """
         # Check if the attack type is valid.
-        assert attack_type in ["increase_decrease", "greedy", "pgd0", "single_step"]
+        assert attack_type in [
+            "increase_decrease",
+            "greedy",
+            "pgd0_decrease",
+            "pgd0",
+            "single_step",
+        ]
         # Input should have 4 dimensions.
         assert len(x_input.size()) == 4
         # sigma should not be None for smooth and uniform gradient.
@@ -258,6 +265,14 @@ class SparseAttack:
         topk_ints = []
         for i in range(x_input.size()[0]):
             topk_ints.append(topk_intersect(org_expl[i], adv_expl[i], self.topk))
+        # The cosine distances resulting from the greedy iterations.
+        cos_dists = [
+            spatial.distance.cosine(
+                adv_expl[i].detach().cpu().flatten(),
+                org_expl[i].detach().cpu().flatten(),
+            )
+            for i in range(x_input.size()[0])
+        ]
         # The adversarial noise tensor.
         r_adv = x_adv - x_input
         # Perturbation mask to keep track of the perturbed features that have been
@@ -293,7 +308,18 @@ class SparseAttack:
             new_topk_ints = []
             for i in range(x_input.size()[0]):
                 new_topk_ints.append(topk_intersect(org_expl[i], temp_adv_expl[i], self.topk))
-            successful_batches = (np.array(new_topk_ints) - np.array(topk_ints)) <= 0
+            # Check if the temporary adversarial input can improve the cosine distance
+            # in any batch.
+            new_cos_dists = [
+                spatial.distance.cosine(
+                    temp_adv_expl[i].detach().cpu().flatten(),
+                    org_expl[i].detach().cpu().flatten(),
+                )
+                for i in range(x_input.size()[0])
+            ]
+            improved_topk_int = (np.array(new_topk_ints) - np.array(topk_ints)) <= 0
+            imporved_cosd = (np.array(new_cos_dists) - np.array(cos_dists)) >= -1e-3
+            successful_batches = np.logical_and(improved_topk_int, imporved_cosd)
             # Update the adversarial input and noise.
             x_adv.data[successful_batches] = temp_x_adv.data[successful_batches]
             r_adv.data[successful_batches] = temp_r_adv.data[successful_batches]
@@ -401,6 +427,36 @@ class SparseAttack:
                 topk_ints.append(topk_intersect(mask[i], adv_expl[i], self.topk))
             if verbose:
                 print("{}: mean expl loss: {}".format(iter_no, np.mean(topk_ints)))
+
+        return x_adv
+
+    def pgd0_decrease_iterations(
+        self,
+        x_input: torch.Tensor,
+        y_input: torch.Tensor,
+        mask: torch.Tensor,
+        batch_size: int,
+        sigma: Tuple = None,
+        verbose: bool = False,
+    ) -> torch.Tensor:
+        """Find perturbation with pgd0 and reduce the perturbation.
+
+        Args:
+            x_input: Input to the model, size = (B, C, H, W).
+            y_input: The ground truth label corresponding to x_input.
+            mask: Mask tensor for the topk attack.
+            batch_size: Batch size of the input.
+            sigma: Standard deviation of the noise for smooth gradient method.
+            Defaults to None.
+            verbose: Print the result of the attack after each iteration. Defaults to False.
+
+        Returns:
+            The adversarial input that manipulates the explanation but keeps the prediction
+            unchanged.
+        """
+        x_adv_increase = self.pgd0_iterations(x_input, y_input, mask, batch_size, sigma)
+
+        x_adv = self.decrease_iterations(x_input, x_adv_increase, y_input, batch_size, sigma)
 
         return x_adv
 
