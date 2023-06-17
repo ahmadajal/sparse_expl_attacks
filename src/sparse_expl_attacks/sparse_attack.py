@@ -72,6 +72,7 @@ class SparseAttack:
         y_input: torch.Tensor,
         sigma: Tuple = None,
         verbose: bool = False,
+        **kwargs,
     ) -> torch.Tensor:
         """Perform the sparse explanation attack against the explanations of instances
         in x_input.
@@ -125,9 +126,17 @@ class SparseAttack:
                 mask[_][topk_perbatch[_]] = 1
             mask = mask.view(org_expl.size())
 
+        # How many features to perturb in each iteration of the greedy attack.
+        perturbation_per_iter = kwargs.get("perturbation_per_iter", 1)
         # Perform the attack
         x_adv = self.__getattribute__(f"{attack_type}_iterations")(
-            x_input, y_input, mask, BATCH_SIZE, sigma, verbose
+            x_input,
+            y_input,
+            mask,
+            BATCH_SIZE,
+            sigma,
+            verbose,
+            perturbation_per_iter=perturbation_per_iter,
         )
         return x_adv
 
@@ -139,6 +148,7 @@ class SparseAttack:
         batch_size: int,
         sigma: Tuple = None,
         verbose: bool = False,
+        **kwargs,
     ) -> torch.Tensor:
         """Iterations of the Greedy attack
 
@@ -146,7 +156,7 @@ class SparseAttack:
             x_input: Input to the model, size = (B, C, H, W).
             y_input: The ground truth label corresponding to x_input.
             mask: Mask tensor for the topk attack.
-            batch_size: Batch size of the input
+            batch_size: Batch size of the input.
             sigma: Standard deviation of the noise for smooth gradient method.
             verbose: Print the result of the attack after each iteration.
         """
@@ -161,7 +171,8 @@ class SparseAttack:
         # when we do an update along a dimension, we keep that in a list so to avoid
         # choosing the same dimension in the next iterations
         used_indices = []
-        #
+        # How many features to perturb in each iteration.
+        perturbation_per_iter = kwargs.get("perturbation_per_iter", 1)
         for iter_no in range(self.num_iter):
             optimizer.zero_grad()
             adv_expl = get_expl(
@@ -189,7 +200,7 @@ class SparseAttack:
             available_batches = sorted(unfinished_batches.intersection(max_not_reached))
             # Pick the next top coordinate.
             x_adv.grad, chosen_indices = next_topk_coord(
-                x_adv.grad, used_indices, available_batches
+                x_adv.grad, used_indices, available_batches, k=perturbation_per_iter
             )
             optimizer.step()
             # Update the used indices:
@@ -338,6 +349,7 @@ class SparseAttack:
         batch_size: int,
         sigma: Tuple = None,
         verbose: bool = False,
+        **kwargs,
     ) -> torch.Tensor:
         """Greedy increase and reduce attack.
 
@@ -354,7 +366,15 @@ class SparseAttack:
             The adversarial input that manipulates the explanation but keeps the prediction
             unchanged.
         """
-        x_adv_increase = self.greedy_iterations(x_input, y_input, mask, batch_size, sigma)
+        perturbation_per_iter = kwargs.get("perturbation_per_iter", 1)
+        x_adv_increase = self.greedy_iterations(
+            x_input,
+            y_input,
+            mask,
+            batch_size,
+            sigma,
+            perturbation_per_iter=perturbation_per_iter,
+        )
 
         x_adv = self.decrease_iterations(x_input, x_adv_increase, y_input, batch_size, sigma)
 
@@ -368,6 +388,7 @@ class SparseAttack:
         batch_size: int,
         sigma: Tuple = None,
         verbose: bool = False,
+        **kwargs,
     ) -> torch.Tensor:
         """Iterations of the PGD_0 attack.
 
@@ -438,6 +459,7 @@ class SparseAttack:
         batch_size: int,
         sigma: Tuple = None,
         verbose: bool = False,
+        **kwargs,
     ) -> torch.Tensor:
         """Find perturbation with pgd0 and reduce the perturbation.
 
@@ -468,6 +490,7 @@ class SparseAttack:
         batch_size: int,
         sigma: Tuple = None,
         verbose: bool = False,
+        **kwargs,
     ) -> torch.Tensor:
         """The single step attack
 
