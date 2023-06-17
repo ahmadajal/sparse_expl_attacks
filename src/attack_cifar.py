@@ -38,6 +38,12 @@ argparser.add_argument(
 argparser.add_argument("--topk", type=int, default=20)
 argparser.add_argument("--max_num_features", type=int, default=20)
 argparser.add_argument("--gamma", type=float, default=1e1)
+argparser.add_argument(
+    "--perturbation_per_iter",
+    type=int,
+    default=1,
+    help="number of features to perturb in the greedy iterations.",
+)
 argparser.add_argument("--verbose", type=bool, help="verbose", default=False)
 argparser.add_argument(
     "--add_to_seed",
@@ -113,7 +119,11 @@ sparse_attack = SparseAttack(
     normalizer=normalizer,
 )
 x_adv = sparse_attack.attack(
-    attack_type=args.attack_type, x_input=examples, y_input=labels, sigma=sigma
+    attack_type=args.attack_type,
+    x_input=examples,
+    y_input=labels,
+    sigma=sigma,
+    perturbation_per_iter=args.perturbation_per_iter,
 )
 # after finishing the iterations, compute the org and adversarial explanation
 # for the ReLU model
