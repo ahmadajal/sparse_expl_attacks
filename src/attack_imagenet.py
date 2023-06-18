@@ -173,9 +173,9 @@ for i in range(examples.size()[0]):
     topk_ints.append(topk_intersect(org_expl[i], adv_expl[i], args.topk))
 
 preds_org = model_relu(normalizer.forward(examples)).argmax(dim=1)
-print("org acc: ", (labels == preds_org).sum() / BATCH_SIZE)
+print("org acc: ", (labels == preds_org).sum().item() / BATCH_SIZE)
 preds = model_relu(normalizer.forward(x_adv)).argmax(dim=1)
-print("adv acc: ", (labels == preds).sum() / BATCH_SIZE)
+print("adv acc: ", (labels == preds).sum().item() / BATCH_SIZE)
 
 print(torch.max(x_adv))
 print("mean top-k intersection: ", np.mean(topk_ints))
