@@ -18,7 +18,7 @@ from sparse_expl_attacks.utils import (
 )
 
 argparser = argparse.ArgumentParser()
-argparser.add_argument("--num_iter", type=int, default=1000, help="number of iterations")
+argparser.add_argument("--num_iter", type=int, default=200, help="number of iterations")
 argparser.add_argument("--lr", type=float, default=0.2, help="learning rate")
 argparser.add_argument(
     "--attack_type",
