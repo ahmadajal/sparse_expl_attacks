@@ -331,6 +331,10 @@ class SparseAttack:
             improved_topk_int = (np.array(new_topk_ints) - np.array(topk_ints)) <= 0
             imporved_cosd = (np.array(new_cos_dists) - np.array(cos_dists)) >= -1e-3
             successful_batches = np.logical_and(improved_topk_int, imporved_cosd)
+            # Keep only the ones that did not change the prediction.
+            new_preds = self.model_relu(self.normalizer.forward(temp_x_adv)).argmax(dim=1)
+            correct_preds = (new_preds == y_input).detach().cpu().numpy()
+            successful_batches = np.logical_and(successful_batches, correct_preds)
             # Update the adversarial input and noise.
             x_adv.data[successful_batches] = temp_x_adv.data[successful_batches]
             r_adv.data[successful_batches] = temp_r_adv.data[successful_batches]
