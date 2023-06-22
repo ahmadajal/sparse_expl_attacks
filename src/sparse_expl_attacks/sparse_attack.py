@@ -228,6 +228,10 @@ class SparseAttack:
             if len(unfinished_batches) == 0:
                 break
 
+        # Release the memory.
+        del adv_expl
+        torch.cuda.empty_cache()
+
         return x_adv
 
     def decrease_iterations(
@@ -284,6 +288,9 @@ class SparseAttack:
             )
             for i in range(x_input.size()[0])
         ]
+        # Release the memory.
+        del adv_expl
+        torch.cuda.empty_cache()
         # The adversarial noise tensor.
         r_adv = x_adv - x_input
         # Perturbation mask to keep track of the perturbed features that have been
@@ -342,6 +349,9 @@ class SparseAttack:
             perturb_mask = perturb_mask.view(batch_size, 3, -1)
             perturb_mask[list(range(batch_size)), :, min_indices.cpu().numpy()] = 0.0
             perturb_mask = perturb_mask.view(x_input.size())
+            # Release the memory.
+            del temp_adv_expl
+            torch.cuda.empty_cache()
 
         return x_adv
 
