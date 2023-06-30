@@ -173,3 +173,4 @@ results/
 
 # Exclude bash scripts
 src/*.sh
+src/attack_tabular.py
