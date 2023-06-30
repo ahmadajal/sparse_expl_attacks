@@ -38,6 +38,12 @@ argparser.add_argument(
 argparser.add_argument("--topk", type=int, default=20)
 argparser.add_argument("--max_num_features", type=int, default=20)
 argparser.add_argument("--gamma", type=float, default=1e1)
+argparser.add_argument(
+    "--perturbation_per_iter",
+    type=int,
+    default=1,
+    help="number of features to perturb in the greedy iterations.",
+)
 argparser.add_argument("--verbose", type=bool, help="verbose", default=False)
 argparser.add_argument(
     "--add_to_seed",
@@ -113,7 +119,11 @@ sparse_attack = SparseAttack(
     normalizer=normalizer,
 )
 x_adv = sparse_attack.attack(
-    attack_type=args.attack_type, x_input=examples, y_input=labels, sigma=sigma
+    attack_type=args.attack_type,
+    x_input=examples,
+    y_input=labels,
+    sigma=sigma,
+    perturbation_per_iter=args.perturbation_per_iter,
 )
 # after finishing the iterations, compute the org and adversarial explanation
 # for the ReLU model
@@ -140,9 +150,9 @@ for i in range(examples.size()[0]):
     topk_ints.append(topk_intersect(org_expl[i], adv_expl[i], args.topk))
 
 preds_org = model_relu(normalizer.forward(examples)).argmax(dim=1)
-print("org acc: ", (labels == preds_org).sum() / BATCH_SIZE)
+print("org acc: ", (labels == preds_org).sum().item() / BATCH_SIZE)
 preds = model_relu(normalizer.forward(x_adv)).argmax(dim=1)
-print("adv acc: ", (labels == preds).sum() / BATCH_SIZE)
+print("adv acc: ", (labels == preds).sum().item() / BATCH_SIZE)
 
 print(torch.max(x_adv))
 print("mean top-k intersection: ", np.mean(topk_ints))

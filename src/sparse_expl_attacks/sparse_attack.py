@@ -2,6 +2,7 @@ import copy
 from typing import Tuple
 
 import numpy as np
+import scipy.spatial as spatial
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -71,6 +72,7 @@ class SparseAttack:
         y_input: torch.Tensor,
         sigma: Tuple = None,
         verbose: bool = False,
+        **kwargs,
     ) -> torch.Tensor:
         """Perform the sparse explanation attack against the explanations of instances
         in x_input.
@@ -84,7 +86,13 @@ class SparseAttack:
             verbose: Print the result of the attack after each iteration.
         """
         # Check if the attack type is valid.
-        assert attack_type in ["greedy", "pgd0", "single_step"]
+        assert attack_type in [
+            "increase_decrease",
+            "greedy",
+            "pgd0_decrease",
+            "pgd0",
+            "single_step",
+        ]
         # Input should have 4 dimensions.
         assert len(x_input.size()) == 4
         # sigma should not be None for smooth and uniform gradient.
@@ -118,9 +126,17 @@ class SparseAttack:
                 mask[_][topk_perbatch[_]] = 1
             mask = mask.view(org_expl.size())
 
+        # How many features to perturb in each iteration of the greedy attack.
+        perturbation_per_iter = kwargs.get("perturbation_per_iter", 1)
         # Perform the attack
         x_adv = self.__getattribute__(f"{attack_type}_iterations")(
-            x_input, y_input, mask, BATCH_SIZE, sigma, verbose
+            x_input,
+            y_input,
+            mask,
+            BATCH_SIZE,
+            sigma,
+            verbose,
+            perturbation_per_iter=perturbation_per_iter,
         )
         return x_adv
 
@@ -132,6 +148,7 @@ class SparseAttack:
         batch_size: int,
         sigma: Tuple = None,
         verbose: bool = False,
+        **kwargs,
     ) -> torch.Tensor:
         """Iterations of the Greedy attack
 
@@ -139,7 +156,7 @@ class SparseAttack:
             x_input: Input to the model, size = (B, C, H, W).
             y_input: The ground truth label corresponding to x_input.
             mask: Mask tensor for the topk attack.
-            batch_size: Batch size of the input
+            batch_size: Batch size of the input.
             sigma: Standard deviation of the noise for smooth gradient method.
             verbose: Print the result of the attack after each iteration.
         """
@@ -154,7 +171,8 @@ class SparseAttack:
         # when we do an update along a dimension, we keep that in a list so to avoid
         # choosing the same dimension in the next iterations
         used_indices = []
-        #
+        # How many features to perturb in each iteration.
+        perturbation_per_iter = kwargs.get("perturbation_per_iter", 1)
         for iter_no in range(self.num_iter):
             optimizer.zero_grad()
             adv_expl = get_expl(
@@ -182,7 +200,7 @@ class SparseAttack:
             available_batches = sorted(unfinished_batches.intersection(max_not_reached))
             # Pick the next top coordinate.
             x_adv.grad, chosen_indices = next_topk_coord(
-                x_adv.grad, used_indices, available_batches
+                x_adv.grad, used_indices, available_batches, k=perturbation_per_iter
             )
             optimizer.step()
             # Update the used indices:
@@ -210,6 +228,170 @@ class SparseAttack:
             if len(unfinished_batches) == 0:
                 break
 
+        # Release the memory.
+        del adv_expl
+        torch.cuda.empty_cache()
+
+        return x_adv
+
+    def decrease_iterations(
+        self,
+        x_input: torch.Tensor,
+        x_adv: torch.Tensor,
+        y_input: torch.Tensor,
+        batch_size: int,
+        sigma: Tuple = None,
+    ) -> torch.Tensor:
+        """Reduce iterations to be applied after the greedy increase of the perturbed
+        features. This method should only be used inside the increase_decrease
+        method.
+
+        Args:
+            x_input: Input to the model, size = (B, C, H, W).
+            x_adv: Adversarial input computed from the greedy iterations.
+            y_input: The ground truth label corresponding to x_input.
+            batch_size: Batch size of the input.
+            sigma: Standard deviation of the noise for smooth gradient method.
+            Defaults to None.
+
+        Returns:
+            An adversarial input with same or less perturbed features and with the
+            same or less topk intersection loss.
+        """
+        # The topk intersection losses resulted from the greedy iterations.
+        org_expl = get_expl(
+            model=self.model_relu,
+            x=self.normalizer.forward(x_input),
+            expl_method=self.expl_method,
+            device=self.device,
+            true_label=y_input,
+            sigma=sigma,
+            normalize=True,
+        )
+        adv_expl = get_expl(
+            model=self.model_relu,
+            x=self.normalizer.forward(x_adv),
+            expl_method=self.expl_method,
+            device=self.device,
+            true_label=y_input,
+            sigma=sigma,
+            normalize=True,
+        )
+        topk_ints = []
+        for i in range(x_input.size()[0]):
+            topk_ints.append(topk_intersect(org_expl[i], adv_expl[i], self.topk))
+        # The cosine distances resulting from the greedy iterations.
+        cos_dists = [
+            spatial.distance.cosine(
+                adv_expl[i].detach().cpu().flatten(),
+                org_expl[i].detach().cpu().flatten(),
+            )
+            for i in range(x_input.size()[0])
+        ]
+        # Release the memory.
+        del adv_expl
+        torch.cuda.empty_cache()
+        # The adversarial noise tensor.
+        r_adv = x_adv - x_input
+        # Perturbation mask to keep track of the perturbed features that have been
+        # checked already.
+        perturb_mask = torch.amax(torch.abs(r_adv) > 1e-10, dim=1, keepdim=True).int()
+        perturb_mask = perturb_mask.repeat(1, 3, 1, 1)
+        features_checked = 0
+        while features_checked < self.max_num_features and perturb_mask.nonzero().size()[0]:
+            features_checked += 1
+            # Find the minimum perturbation coordinate in all batches. The minimum coordinate
+            # is the coordinate with the minumum l_1 norm along the channel axis.
+            non_zero_r_adv = torch.sum(
+                torch.abs(r_adv * perturb_mask) + (1 - perturb_mask) * 1e5, dim=1, keepdim=True
+            )
+            min_indices = torch.argmin(non_zero_r_adv.view(batch_size, -1), dim=1)
+            # Create a temporary noise tensor without the selected indices.
+            temp_r_adv = copy.deepcopy(r_adv.view(batch_size, 3, -1).data)
+            temp_r_adv[list(range(batch_size)), :, min_indices.cpu().numpy()] = 0.0
+            temp_r_adv = temp_r_adv.view(x_input.size())
+            # Create a temporary adversarial input made from the temporary noise.
+            temp_x_adv = copy.deepcopy(x_adv)
+            temp_x_adv.data = x_input.data + temp_r_adv.data
+            # Check if the temporary adversarial input can improve the top-k loss in any batch.
+            temp_adv_expl = get_expl(
+                model=self.model_relu,
+                x=self.normalizer.forward(temp_x_adv),
+                expl_method=self.expl_method,
+                device=self.device,
+                true_label=y_input,
+                sigma=sigma,
+                normalize=True,
+            )
+            new_topk_ints = []
+            for i in range(x_input.size()[0]):
+                new_topk_ints.append(topk_intersect(org_expl[i], temp_adv_expl[i], self.topk))
+            # Check if the temporary adversarial input can improve the cosine distance
+            # in any batch.
+            new_cos_dists = [
+                spatial.distance.cosine(
+                    temp_adv_expl[i].detach().cpu().flatten(),
+                    org_expl[i].detach().cpu().flatten(),
+                )
+                for i in range(x_input.size()[0])
+            ]
+            improved_topk_int = (np.array(new_topk_ints) - np.array(topk_ints)) <= 0
+            imporved_cosd = (np.array(new_cos_dists) - np.array(cos_dists)) >= -1e-3
+            successful_batches = np.logical_and(improved_topk_int, imporved_cosd)
+            # Keep only the ones that did not change the prediction.
+            new_preds = self.model_relu(self.normalizer.forward(temp_x_adv)).argmax(dim=1)
+            correct_preds = (new_preds == y_input).detach().cpu().numpy()
+            successful_batches = np.logical_and(successful_batches, correct_preds)
+            # Update the adversarial input and noise.
+            x_adv.data[successful_batches] = temp_x_adv.data[successful_batches]
+            r_adv.data[successful_batches] = temp_r_adv.data[successful_batches]
+            # We do not need to check these indices anymore, regardless of the above result!
+            perturb_mask = perturb_mask.view(batch_size, 3, -1)
+            perturb_mask[list(range(batch_size)), :, min_indices.cpu().numpy()] = 0.0
+            perturb_mask = perturb_mask.view(x_input.size())
+            # Release the memory.
+            del temp_adv_expl
+            torch.cuda.empty_cache()
+
+        return x_adv
+
+    def increase_decrease_iterations(
+        self,
+        x_input: torch.Tensor,
+        y_input: torch.Tensor,
+        mask: torch.Tensor,
+        batch_size: int,
+        sigma: Tuple = None,
+        verbose: bool = False,
+        **kwargs,
+    ) -> torch.Tensor:
+        """Greedy increase and reduce attack.
+
+        Args:
+            x_input: Input to the model, size = (B, C, H, W).
+            y_input: The ground truth label corresponding to x_input.
+            mask: Mask tensor for the topk attack.
+            batch_size: Batch size of the input.
+            sigma: Standard deviation of the noise for smooth gradient method.
+            Defaults to None.
+            verbose: Print the result of the attack after each iteration. Defaults to False.
+
+        Returns:
+            The adversarial input that manipulates the explanation but keeps the prediction
+            unchanged.
+        """
+        perturbation_per_iter = kwargs.get("perturbation_per_iter", 1)
+        x_adv_increase = self.greedy_iterations(
+            x_input,
+            y_input,
+            mask,
+            batch_size,
+            sigma,
+            perturbation_per_iter=perturbation_per_iter,
+        )
+
+        x_adv = self.decrease_iterations(x_input, x_adv_increase, y_input, batch_size, sigma)
+
         return x_adv
 
     def pgd0_iterations(
@@ -220,14 +402,15 @@ class SparseAttack:
         batch_size: int,
         sigma: Tuple = None,
         verbose: bool = False,
+        **kwargs,
     ) -> torch.Tensor:
-        """Iterations of the PGD_0 attack
+        """Iterations of the PGD_0 attack.
 
         Args:
             x_input: Input to the model, size = (B, C, H, W).
             y_input: The ground truth label corresponding to x_input.
             mask: Mask tensor for the topk attack.
-            batch_size: Batch size of the input
+            batch_size: Batch size of the input.
             sigma: Standard deviation of the noise for smooth gradient method.
             verbose: Print the result of the attack after each iteration.
         """
@@ -282,6 +465,37 @@ class SparseAttack:
 
         return x_adv
 
+    def pgd0_decrease_iterations(
+        self,
+        x_input: torch.Tensor,
+        y_input: torch.Tensor,
+        mask: torch.Tensor,
+        batch_size: int,
+        sigma: Tuple = None,
+        verbose: bool = False,
+        **kwargs,
+    ) -> torch.Tensor:
+        """Find perturbation with pgd0 and reduce the perturbation.
+
+        Args:
+            x_input: Input to the model, size = (B, C, H, W).
+            y_input: The ground truth label corresponding to x_input.
+            mask: Mask tensor for the topk attack.
+            batch_size: Batch size of the input.
+            sigma: Standard deviation of the noise for smooth gradient method.
+            Defaults to None.
+            verbose: Print the result of the attack after each iteration. Defaults to False.
+
+        Returns:
+            The adversarial input that manipulates the explanation but keeps the prediction
+            unchanged.
+        """
+        x_adv_increase = self.pgd0_iterations(x_input, y_input, mask, batch_size, sigma)
+
+        x_adv = self.decrease_iterations(x_input, x_adv_increase, y_input, batch_size, sigma)
+
+        return x_adv
+
     def single_step_iterations(
         self,
         x_input: torch.Tensor,
@@ -290,6 +504,7 @@ class SparseAttack:
         batch_size: int,
         sigma: Tuple = None,
         verbose: bool = False,
+        **kwargs,
     ) -> torch.Tensor:
         """The single step attack
 

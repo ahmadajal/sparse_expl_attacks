@@ -170,3 +170,7 @@ fast_soft_sort/
 preparing_tabular_data/
 SparseFool/
 results/
+
+# Exclude bash scripts
+src/*.sh
+src/attack_tabular.py
